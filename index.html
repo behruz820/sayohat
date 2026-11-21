@@ -1,0 +1,542 @@
+HTML
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Apokalipsis 3D — 5 Zonalı Maydon (Three.js)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #090d16; font-family: system-ui, -apple-system, sans-serif; color: #f8fafc;
+    }
+    #sceneContainer { width: 100vw; height: 100vh; display: block; touch-action: none; }
+
+    .hud-top {
+      position: fixed; top: 12px; left: 12px; z-index: 10;
+      display: flex; flex-direction: column; gap: 6px; pointer-events: none;
+    }
+    .zone-badge {
+      background: rgba(15, 23, 42, 0.85); border: 2px solid #f59e0b;
+      padding: 8px 14px; border-radius: 10px; font-size: 14px; font-weight: 700;
+      backdrop-filter: blur(6px);
+    }
+    .coords-box {
+      background: rgba(15, 23, 42, 0.72); border: 1px solid rgba(148, 163, 184, 0.25);
+      padding: 5px 10px; border-radius: 8px; font-size: 12px; color: #cbd5e1;
+    }
+
+    .minimap-wrap {
+      position: fixed; top: 12px; right: 12px; z-index: 10;
+      background: rgba(15, 23, 42, 0.88); border: 2px solid rgba(255, 255, 255, 0.22);
+      border-radius: 12px; padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    #minimap { display: block; width: 156px; height: 156px; border-radius: 8px; cursor: pointer; }
+    .minimap-caption {
+      text-align: center; font-size: 10px; color: #94a3b8; margin-top: 4px;
+    }
+
+    .controls-hint {
+      position: fixed; bottom: 14px; left: 14px; z-index: 10;
+      background: rgba(15, 23, 42, 0.78); border: 1px solid rgba(148, 163, 184, 0.25);
+      padding: 8px 12px; border-radius: 10px; font-size: 12px; color: #cbd5e1;
+      pointer-events: none;
+    }
+    .github-link {
+      position: fixed; bottom: 14px; right: 14px; z-index: 10;
+      background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(148, 163, 184, 0.3);
+      padding: 7px 12px; border-radius: 10px; font-size: 12px;
+    }
+    .github-link a { color: #38bdf8; text-decoration: none; font-weight: 600; }
+    .github-link a:hover { text-decoration: underline; }
+
+    /* Telefon uchun joystik */
+    .joy-zone {
+      position: fixed; bottom: 24px; right: 24px; width: 120px; height: 120px;
+      border-radius: 50%; background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.25); z-index: 15;
+      display: none; touch-action: none;
+    }
+    .joy-knob {
+      position: absolute; width: 46px; height: 46px; border-radius: 50%;
+      background: rgba(56, 189, 248, 0.8); border: 2px solid #fff;
+      left: 37px; top: 37px; transform: translate(0px, 0px);
+    }
+    @media (hover: none) and (pointer: coarse) {
+      .joy-zone { display: block; }
+      .controls-hint, .github-link { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sceneContainer"></div>
+
+  <div class="hud-top">
+    <div class="zone-badge" id="zoneBadge">3D Zona: Shahrcha</div>
+    <div class="coords-box" id="coordsBox">X: 0 | Z: 0 | Dunyo: 6000×6000 (3D)</div>
+  </div>
+
+  <div class="minimap-wrap">
+    <canvas id="minimap" width="156" height="156"></canvas>
+    <div class="minimap-caption">5 Zonalı 3D Xarita</div>
+  </div>
+
+  <div class="controls-hint">
+    Harakat: <b>WASD</b> / <b>Strelkalar</b> • <b>Shift</b>: Yugurish • <b>Sichqoncha g‘ildiragi</b>: Zoom • <b>Q/E</b>: Kamera burish
+  </div>
+
+  <div class="github-link">
+    GitHub: <a href="https://github.com/behruz820" target="_blank" rel="noopener">github.com/behruz820</a>
+  </div>
+
+  <div class="joy-zone" id="joyZone">
+    <div class="joy-knob" id="joyKnob"></div>
+  </div>
+
+  <!-- Three.js kutubxonasi -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    const WORLD_SIZE = 6000;
+    const HALF = WORLD_SIZE / 2; // 3000
+    const TOWN_RADIUS = 1150;
+
+    const container = document.getElementById("sceneContainer");
+    const zoneBadge = document.getElementById("zoneBadge");
+    const coordsBox = document.getElementById("coordsBox");
+    const miniCanvas = document.getElementById("minimap");
+    const mctx = miniCanvas.getContext("2d");
+
+    // 1. THREE.JS SAHNA, KAMERA VA RENDERER
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f172a);
+    scene.fog = new THREE.FogExp2(0x1e293b, 0.00042);
+
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1, 4500);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // 2. YORUG‘LIK (Quyosh va atrof-muhit nuri)
+    const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x334155, 0.85);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.1);
+    dirLight.position.set(600, 1200, 600);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    const d = 1400;
+    dirLight.shadow.camera.left = -d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = -d;
+    dirLight.shadow.camera.far = 3500;
+    scene.add(dirLight);
+    scene.add(dirLight.target);
+
+    // 3. ZONA ANIQLASH (Markaz: 0, 0; X va Z: -3000 dan +3000 gacha)
+    function getZone(x, z) {
+      if (Math.hypot(x, z) <= TOWN_RADIUS) {
+        return { id: "town", name: "Shahrcha", color: "#f59e0b" };
+      }
+      if (x < 0 && z < 0) return { id: "sea", name: "Dengiz", color: "#0284c7" };
+      if (x >= 0 && z < 0) return { id: "desert", name: "Cho‘l", color: "#eab308" };
+      if (x < 0 && z >= 0) return { id: "snow", name: "Qorli tog‘", color: "#e2e8f0" };
+      return { id: "forest", name: "O‘rmon", color: "#22c55e" };
+    }
+
+    // Deterministik tasodifiy sonlar
+    function seededRandom(seed) {
+      let s = seed % 2147483647;
+      if (s <= 0) s += 2147483646;
+      return () => {
+        s = (s * 16807) % 2147483647;
+        return (s - 1) / 2147483646;
+      };
+    }
+    const rand = seededRandom(20261121);
+
+    // 4. 5 TA 3D YER ZONALARINI YARATISH
+    // Shimoli-g‘arb: Dengiz (-1500, -1500)
+    const seaGeo = new THREE.PlaneGeometry(HALF, HALF, 32, 32);
+    seaGeo.rotateX(-Math.PI / 2);
+    const seaMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7, roughness: 0.25, metalness: 0.35
+    });
+    const seaMesh = new THREE.Mesh(seaGeo, seaMat);
+    seaMesh.position.set(-HALF / 2, -2, -HALF / 2);
+    seaMesh.receiveShadow = true;
+    scene.add(seaMesh);
+
+    // Shimoli-sharq: Cho‘l (+1500, -1500)
+    const desertGeo = new THREE.PlaneGeometry(HALF, HALF);
+    desertGeo.rotateX(-Math.PI / 2);
+    const desertMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.9 });
+    const desertMesh = new THREE.Mesh(desertGeo, desertMat);
+    desertMesh.position.set(HALF / 2, 0, -HALF / 2);
+    desertMesh.receiveShadow = true;
+    scene.add(desertMesh);
+
+    // Janubi-g‘arb: Qorli tog‘ (-1500, +1500)
+    const snowGeo = new THREE.PlaneGeometry(HALF, HALF);
+    snowGeo.rotateX(-Math.PI / 2);
+    const snowMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.75 });
+    const snowMesh = new THREE.Mesh(snowGeo, snowMat);
+    snowMesh.position.set(-HALF / 2, 0, HALF / 2);
+    snowMesh.receiveShadow = true;
+    scene.add(snowMesh);
+
+    // Janubi-sharq: O‘rmon (+1500, +1500)
+    const forestGeo = new THREE.PlaneGeometry(HALF, HALF);
+    forestGeo.rotateX(-Math.PI / 2);
+    const forestMat = new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.85 });
+    const forestMesh = new THREE.Mesh(forestGeo, forestMat);
+    forestMesh.position.set(HALF / 2, 0, HALF / 2);
+    forestMesh.receiveShadow = true;
+    scene.add(forestMesh);
+
+    // Markaz: Shahrcha platformasi (0, 0)
+    const townGeo = new THREE.CylinderGeometry(TOWN_RADIUS, TOWN_RADIUS + 20, 6, 64);
+    const townMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.85 });
+    const townMesh = new THREE.Mesh(townGeo, townMat);
+    townMesh.position.set(0, 1, 0);
+    townMesh.receiveShadow = true;
+    scene.add(townMesh);
+
+    // Shahrcha chegarasi (oltin halqa)
+    const ringGeo = new THREE.RingGeometry(TOWN_RADIUS - 12, TOWN_RADIUS + 8, 64);
+    ringGeo.rotateX(-Math.PI / 2);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.position.set(0, 4.5, 0);
+    scene.add(ringMesh);
+
+    // Shahrcha asfalt yo‘llari
+    const roadMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
+    const roadX = new THREE.Mesh(new THREE.BoxGeometry(TOWN_RADIUS * 1.92, 2, 70), roadMat);
+    roadX.position.set(0, 4.2, 0);
+    roadX.receiveShadow = true;
+    scene.add(roadX);
+
+    const roadZ = new THREE.Mesh(new THREE.BoxGeometry(70, 2, TOWN_RADIUS * 1.92), roadMat);
+    roadZ.position.set(0, 4.2, 0);
+    roadZ.receiveShadow = true;
+    scene.add(roadZ);
+
+    // 5. 3D BINOLAR (Shahrcha ichida)
+    const bMat1 = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.7 });
+    const bMat2 = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.6 });
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
+
+    for (let i = 0; i < 34; i++) {
+      const angle = (i / 34) * Math.PI * 2;
+      const dist = 280 + rand() * 720;
+      const bx = Math.cos(angle) * dist;
+      const bz = Math.sin(angle) * dist;
+      // Asfalt yo‘l ustiga tushib qolmasligi uchun
+      if (Math.abs(bx) < 95 || Math.abs(bz) < 95) continue;
+
+      const bw = 75 + rand() * 85;
+      const bd = 75 + rand() * 85;
+      const bh = 65 + rand() * 145;
+
+      const bMesh = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), rand() > 0.5 ? bMat1 : bMat2);
+      bMesh.position.set(bx, bh / 2 + 4, bz);
+      bMesh.castShadow = true;
+      bMesh.receiveShadow = true;
+      scene.add(bMesh);
+
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(bw + 6, 8, bd + 6), roofMat);
+      roof.position.set(bx, bh + 8, bz);
+      roof.castShadow = true;
+      scene.add(roof);
+    }
+
+    // 6. 4 TA ZONADA 3D OBYEKTLAR (Orollar, Kaktuslar, Qorli tog‘lar, Daraxtlar)
+    const islandMat = new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.9 });
+    const cactusMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.7 });
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.85 });
+    const snowCapMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.75 });
+
+    for (let i = 0; i < 460; i++) {
+      const px = -HALF + 140 + rand() * (WORLD_SIZE - 280);
+      const pz = -HALF + 140 + rand() * (WORLD_SIZE - 280);
+      const z = getZone(px, pz);
+      if (z.id === "town") continue;
+
+      const scale = 0.8 + rand() * 1.4;
+
+      if (z.id === "sea") {
+        // 3D Qumli orolcha
+        const isl = new THREE.Mesh(new THREE.CylinderGeometry(24 * scale, 42 * scale, 14 * scale, 16), islandMat);
+        isl.position.set(px, 4 * scale, pz);
+        isl.castShadow = true;
+        isl.receiveShadow = true;
+        scene.add(isl);
+      } else if (z.id === "desert") {
+        // 3D Kaktus
+        const group = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(6 * scale, 7 * scale, 48 * scale, 10), cactusMat);
+        body.position.y = 24 * scale;
+        body.castShadow = true;
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(4 * scale, 4 * scale, 24 * scale, 8), cactusMat);
+        arm.position.set(8 * scale, 28 * scale, 0);
+        arm.rotation.z = Math.PI / 3;
+        arm.castShadow = true;
+        group.add(body, arm);
+        group.position.set(px, 0, pz);
+        group.rotation.y = rand() * Math.PI * 2;
+        scene.add(group);
+      } else if (z.id === "snow") {
+        // 3D Qorli tog‘ cho‘qqisi
+        const group = new THREE.Group();
+        const h = 110 * scale;
+        const r = 65 * scale;
+        const mtn = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), rockMat);
+        mtn.position.y = h / 2;
+        mtn.castShadow = true;
+        mtn.receiveShadow = true;
+
+        const cap = new THREE.Mesh(new THREE.ConeGeometry(r * 0.48, h * 0.48, 7), snowCapMat);
+        cap.position.y = h * 0.76;
+        group.add(mtn, cap);
+        group.position.set(px, 0, pz);
+        group.rotation.y = rand() * Math.PI * 2;
+        scene.add(group);
+      } else if (z.id === "forest") {
+        // 3D O‘rmon daraxti
+        const group = new THREE.Group();
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(5 * scale, 7 * scale, 32 * scale, 8), trunkMat);
+        trunk.position.y = 16 * scale;
+        trunk.castShadow = true;
+
+        const crown1 = new THREE.Mesh(new THREE.ConeGeometry(28 * scale, 55 * scale, 10), leafMat);
+        crown1.position.y = 48 * scale;
+        crown1.castShadow = true;
+
+        const crown2 = new THREE.Mesh(new THREE.ConeGeometry(21 * scale, 45 * scale, 10), leafMat);
+        crown2.position.y = 72 * scale;
+        crown2.castShadow = true;
+
+        group.add(trunk, crown1, crown2);
+        group.position.set(px, 0, pz);
+        scene.add(group);
+      }
+    }
+
+    // Dunyo chegarasi devorlari (qizil nurli chegara)
+    const borderGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(WORLD_SIZE, 80, WORLD_SIZE));
+    const borderMat = new THREE.LineBasicMaterial({ color: 0xef4444 });
+    const borderBox = new THREE.LineSegments(borderGeo, borderMat);
+    borderBox.position.set(0, 40, 0);
+    scene.add(borderBox);
+
+    // 7. 3D QAHRAMON MODELI
+    const playerGroup = new THREE.Group();
+    const torso = new THREE.Mesh(
+      new THREE.CylinderGeometry(12, 14, 34, 14),
+      new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.4 })
+    );
+    torso.position.y = 22;
+    torso.castShadow = true;
+
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(11, 16, 16),
+      new THREE.MeshStandardMaterial({ color: 0xfef08a, roughness: 0.5 })
+    );
+    head.position.y = 48;
+    head.castShadow = true;
+
+    // Oldingi yo‘nalish ko‘rsatkichi (visor/qurol)
+    const visor = new THREE.Mesh(
+      new THREE.BoxGeometry(10, 6, 14),
+      new THREE.MeshStandardMaterial({ color: 0xef4444 })
+    );
+    visor.position.set(0, 48, 9);
+
+    playerGroup.add(torso, head, visor);
+    playerGroup.position.set(0, 4, 0);
+    scene.add(playerGroup);
+
+    // 8. BOSHQARUV VA KAMERA SOZLAMALARI
+    const playerState = {
+      speed: 360,
+      rotY: 0
+    };
+    let camYaw = 0;
+    let camDist = 360;
+    let camHeight = 270;
+
+    const keys = {};
+    window.addEventListener("keydown", (e) => { keys[e.key.toLowerCase()] = true; });
+    window.addEventListener("keyup", (e) => { keys[e.key.toLowerCase()] = false; });
+
+    // Zoom (sichqoncha g‘ildiragi)
+    window.addEventListener("wheel", (e) => {
+      camDist = Math.max(140, Math.min(950, camDist + e.deltaY * 0.35));
+      camHeight = camDist * 0.75;
+    }, { passive: true });
+
+    // Sensorli joystik
+    const joyZone = document.getElementById("joyZone");
+    const joyKnob = document.getElementById("joyKnob");
+    let joyActive = false;
+    let joyVec = { x: 0, y: 0 };
+
+    function updateJoystick(clientX, clientY) {
+      const rect = joyZone.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const maxR = 36;
+      let dx = clientX - cx;
+      let dy = clientY - cy;
+      const dist = Math.hypot(dx, dy);
+      if (dist > maxR) {
+        dx = (dx / dist) * maxR;
+        dy = (dy / dist) * maxR;
+      }
+      joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+      joyVec.x = dx / maxR;
+      joyVec.y = dy / maxR;
+    }
+
+    joyZone.addEventListener("pointerdown", (e) => {
+      joyActive = true;
+      joyZone.setPointerCapture(e.pointerId);
+      updateJoystick(e.clientX, e.clientY);
+    });
+    joyZone.addEventListener("pointermove", (e) => {
+      if (joyActive) updateJoystick(e.clientX, e.clientY);
+    });
+    joyZone.addEventListener("pointerup", () => {
+      joyActive = false;
+      joyVec = { x: 0, y: 0 };
+      joyKnob.style.transform = "translate(0px, 0px)";
+    });
+
+    // 9. MINI-XARITA
+    const miniBg = document.createElement("canvas");
+    miniBg.width = 156;
+    miniBg.height = 156;
+    const mbctx = miniBg.getContext("2d");
+    (function bakeMinimap() {
+      const s = miniBg.width / WORLD_SIZE;
+      mbctx.fillStyle = "#0369a1"; mbctx.fillRect(0, 0, 78, 78);      // Dengiz
+      mbctx.fillStyle = "#ca8a04"; mbctx.fillRect(78, 0, 78, 78);     // Cho‘l
+      mbctx.fillStyle = "#cbd5e1"; mbctx.fillRect(0, 78, 78, 78);     // Qorli tog‘
+      mbctx.fillStyle = "#15803d"; mbctx.fillRect(78, 78, 78, 78);    // O‘rmon
+
+      mbctx.fillStyle = "#d97706";
+      mbctx.beginPath();
+      mbctx.arc(78, 78, TOWN_RADIUS * s, 0, Math.PI * 2);
+      mbctx.fill();
+      mbctx.strokeStyle = "#fef08a";
+      mbctx.lineWidth = 1.5;
+      mbctx.stroke();
+    })();
+
+    miniCanvas.addEventListener("click", (e) => {
+      const rect = miniCanvas.getBoundingClientRect();
+      const mx = (e.clientX - rect.left) / rect.width;
+      const mz = (e.clientY - rect.top) / rect.height;
+      playerGroup.position.x = Math.max(-HALF + 50, Math.min(HALF - 50, (mx - 0.5) * WORLD_SIZE));
+      playerGroup.position.z = Math.max(-HALF + 50, Math.min(HALF - 50, (mz - 0.5) * WORLD_SIZE));
+    });
+
+    // 10. ASOSIY O‘YIN SIKLI
+    let lastTime = performance.now();
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+
+      // Kamerani Q/E bilan burish
+      if (keys["q"]) camYaw += 1.8 * dt;
+      if (keys["e"]) camYaw -= 1.8 * dt;
+
+      // Harakat yo‘nalishi
+      let inputX = joyVec.x;
+      let inputZ = joyVec.y;
+      if (keys["w"] || keys["arrowup"]) inputZ -= 1;
+      if (keys["s"] || keys["arrowdown"]) inputZ += 1;
+      if (keys["a"] || keys["arrowleft"]) inputX -= 1;
+      if (keys["d"] || keys["arrowright"]) inputX += 1;
+
+      const len = Math.hypot(inputX, inputZ);
+      if (len > 0) {
+        inputX /= len;
+        inputZ /= len;
+
+        // Kamera burchagiga nisbatan yurish
+        const sin = Math.sin(camYaw);
+        const cos = Math.cos(camYaw);
+        const moveX = inputX * cos + inputZ * sin;
+        const moveZ = -inputX * sin + inputZ * cos;
+
+        const sprint = keys["shift"] ? 1.7 : 1;
+        playerGroup.position.x += moveX * playerState.speed * sprint * dt;
+        playerGroup.position.z += moveZ * playerState.speed * sprint * dt;
+
+        playerState.rotY = Math.atan2(moveX, moveZ);
+        playerGroup.rotation.y = playerState.rotY;
+      }
+
+      // Chegarada ushlab turish
+      playerGroup.position.x = Math.max(-HALF + 25, Math.min(HALF - 25, playerGroup.position.x));
+      playerGroup.position.z = Math.max(-HALF + 25, Math.min(HALF - 25, playerGroup.position.z));
+
+      // Shahrcha balandligiga moslashish
+      const currentZone = getZone(playerGroup.position.x, playerGroup.position.z);
+      playerGroup.position.y = currentZone.id === "town" ? 4 : 0;
+
+      // Dengiz to‘lqin animatsiyasi
+      seaMesh.position.y = -2 + Math.sin(now * 0.0025) * 1.8;
+
+      // Kamera va soyani qahramonga ergashtirish
+      const targetCamX = playerGroup.position.x + Math.sin(camYaw) * camDist;
+      const targetCamZ = playerGroup.position.z + Math.cos(camYaw) * camDist;
+      const targetCamY = playerGroup.position.y + camHeight;
+
+      camera.position.lerp(new THREE.Vector3(targetCamX, targetCamY, targetCamZ), 0.12);
+      camera.lookAt(playerGroup.position.x, playerGroup.position.y + 30, playerGroup.position.z);
+
+      dirLight.position.set(playerGroup.position.x + 500, 1100, playerGroup.position.z + 500);
+      dirLight.target.position.copy(playerGroup.position);
+
+      // HUD va Mini-xarita
+      zoneBadge.textContent = `3D Zona: ${currentZone.name}`;
+      zoneBadge.style.borderColor = currentZone.color;
+      coordsBox.textContent = `X: ${Math.round(playerGroup.position.x)} | Z: ${Math.round(playerGroup.position.z)} | Dunyo: 6000×6000 (3D)`;
+
+      mctx.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
+      mctx.drawImage(miniBg, 0, 0);
+      const px = ((playerGroup.position.x + HALF) / WORLD_SIZE) * miniCanvas.width;
+      const pz = ((playerGroup.position.z + HALF) / WORLD_SIZE) * miniCanvas.height;
+      mctx.fillStyle = "#ef4444";
+      mctx.beginPath();
+      mctx.arc(px, pz, 4.5, 0, Math.PI * 2);
+      mctx.fill();
+      mctx.strokeStyle = "#ffffff";
+      mctx.lineWidth = 1.5;
+      mctx.stroke();
+
+      renderer.render(scene, camera);
+    }
+
+    animate(performance.now());
+  </script>
+</body>
+</html>
