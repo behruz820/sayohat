@@ -4,1277 +4,1685 @@ HTML
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Apokalipsis 3D — Profil va 5 Zonalı Dunyo</title>
+  <title>Shahar & 4 Olam — 3D Sivilizatsiya Simulyatori</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
     html, body {
-      width: 100%; height: 100%; overflow: hidden;
-      background: #090d16; font-family: system-ui, -apple-system, sans-serif; color: #f8fafc;
+      margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #101820; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: #f3f6fa; touch-action: none;
     }
-    #sceneContainer { width: 100vw; height: 100vh; display: block; touch-action: none; }
+    #canvas-wrap { position: fixed; inset: 0; width: 100%; height: 100%; }
 
-    /* --- KIRISHDA PROFIL YARATISH OYNASI --- */
-    #profileModal {
-      position: fixed; inset: 0; z-index: 100;
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.99));
-      display: flex; align-items: center; justify-content: center;
-      padding: 16px; overflow-y: auto;
-    }
-    .creator-card {
-      width: 100%; max-width: 820px;
-      background: rgba(30, 41, 59, 0.95);
-      border: 2px solid rgba(56, 189, 248, 0.45);
-      border-radius: 22px; padding: 22px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
-      display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 22px;
-    }
-    .creator-title {
-      grid-column: 1 / -1;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.25); padding-bottom: 12px;
-    }
-    .creator-title h2 { font-size: 20px; color: #38bdf8; }
-    .creator-title span { font-size: 12px; color: #94a3b8; }
-
-    .controls-col { display: flex; flex-direction: column; gap: 13px; }
-    .field-group { display: flex; flex-direction: column; gap: 6px; }
-    .field-label { font-size: 12px; font-weight: 700; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.4px; }
-
-    .text-input {
-      background: #0f172a; border: 1.5px solid #475569; border-radius: 10px;
-      padding: 10px 12px; color: #fff; font-size: 14px; outline: none;
-    }
-    .text-input:focus { border-color: #38bdf8; }
-
-    .option-row { display: flex; flex-wrap: wrap; gap: 8px; }
-    .opt-btn {
-      background: #0f172a; border: 1.5px solid #475569; color: #e2e8f0;
-      padding: 7px 12px; border-radius: 9px; font-size: 12px; font-weight: 600;
-      cursor: pointer; transition: 0.15s;
-    }
-    .opt-btn:hover { border-color: #94a3b8; }
-    .opt-btn.active {
-      background: rgba(2, 132, 199, 0.35); border-color: #38bdf8; color: #fff;
-    }
-
-    .swatch-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .swatch {
-      width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
-      border: 2px solid rgba(255, 255, 255, 0.35); transition: transform 0.15s;
-    }
-    .swatch:hover { transform: scale(1.1); }
-    .swatch.active { border: 3px solid #facc15; transform: scale(1.14); }
-    .color-picker {
-      width: 34px; height: 28px; border: none; background: transparent; cursor: pointer;
-    }
-
-    .preview-col {
-      background: #0f172a; border: 1px solid #334155; border-radius: 16px;
-      display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-      padding: 14px; min-height: 310px;
-    }
-    #previewCanvas { width: 100%; height: 240px; border-radius: 12px; display: block; }
-    .preview-meta {
-      width: 100%; display: flex; justify-content: space-between; align-items: center;
-      font-size: 12px; color: #94a3b8; padding-top: 8px;
-    }
-    .preview-name { font-weight: 700; color: #facc15; font-size: 14px; }
-
-    .start-row {
-      grid-column: 1 / -1;
-      display: flex; justify-content: flex-end; gap: 12px; padding-top: 6px;
-    }
-    .btn-random {
-      background: #334155; color: #f8fafc; border: 1px solid #64748b;
-      padding: 11px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer;
-    }
-    .btn-start {
-      background: linear-gradient(135deg, #0284c7, #16a34a); color: #fff; border: none;
-      padding: 12px 26px; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer;
-      box-shadow: 0 8px 24px rgba(22, 163, 74, 0.35);
-    }
-
-    @media (max-width: 720px) {
-      .creator-card { grid-template-columns: 1fr; }
-      #previewCanvas { height: 200px; }
-    }
-
-    /* --- O'YIN HUD --- */
-    .hud-top {
-      position: fixed; top: 12px; left: 12px; z-index: 10;
-      display: flex; flex-direction: column; gap: 6px; pointer-events: none;
-    }
-    .zone-badge {
-      background: rgba(15, 23, 42, 0.88); border: 2px solid #f59e0b;
-      padding: 8px 14px; border-radius: 10px; font-size: 14px; font-weight: 700;
-      backdrop-filter: blur(6px);
-    }
-    .coords-box {
-      background: rgba(15, 23, 42, 0.78); border: 1px solid rgba(148, 163, 184, 0.25);
-      padding: 5px 10px; border-radius: 8px; font-size: 12px; color: #cbd5e1;
-    }
-
-    .res-panel {
-      position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 10;
-      background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(148, 163, 184, 0.3);
-      border-radius: 12px; padding: 8px 14px; display: flex; flex-wrap: wrap;
-      gap: 10px; align-items: center; font-size: 12px; font-weight: 600;
-      backdrop-filter: blur(6px); max-width: 92vw;
-    }
-    .res-item { display: flex; align-items: center; gap: 4px; color: #e2e8f0; }
-    .base-pill {
-      background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b;
-      color: #fde68a; padding: 3px 8px; border-radius: 8px; font-size: 11px;
-    }
-    .profile-open-btn {
-      background: rgba(56, 189, 248, 0.22); border: 1px solid #38bdf8;
-      color: #e0f2fe; padding: 3px 9px; border-radius: 8px; font-size: 11px;
-      font-weight: 700; cursor: pointer;
-    }
-
-    .minimap-wrap {
-      position: fixed; top: 12px; right: 12px; z-index: 10;
-      background: rgba(15, 23, 42, 0.88); border: 2px solid rgba(255, 255, 255, 0.22);
-      border-radius: 12px; padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-    }
-    #minimap { display: block; width: 156px; height: 156px; border-radius: 8px; cursor: pointer; }
-    .minimap-caption {
-      text-align: center; font-size: 10px; color: #94a3b8; margin-top: 4px;
-    }
-
-    .action-prompt {
-      position: fixed; bottom: 82px; left: 50%; transform: translateX(-50%); z-index: 12;
-      background: rgba(2, 132, 199, 0.92); border: 1px solid #7dd3fc;
-      color: #fff; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 700;
-      display: none; box-shadow: 0 6px 20px rgba(0,0,0,0.45);
-    }
-
-    .controls-hint {
-      position: fixed; bottom: 14px; left: 14px; z-index: 10;
-      background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(148, 163, 184, 0.25);
-      padding: 8px 12px; border-radius: 10px; font-size: 12px; color: #cbd5e1;
+    /* Yuqori panel */
+    #top-bar {
+      position: fixed; top: 10px; left: 10px; right: 10px; z-index: 20;
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between;
       pointer-events: none;
     }
-    .github-link {
-      position: fixed; bottom: 14px; right: 14px; z-index: 10;
-      background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(148, 163, 184, 0.3);
-      padding: 7px 12px; border-radius: 10px; font-size: 12px;
+    .hud-card {
+      pointer-events: auto;
+      background: rgba(16, 24, 35, 0.84); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
+      padding: 8px 12px; font-size: 13px; line-height: 1.35;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
     }
-    .github-link a { color: #38bdf8; text-decoration: none; font-weight: 600; }
-    .github-link a:hover { text-decoration: underline; }
+    .hud-title { font-weight: 700; color: #7dd3fc; font-size: 14px; }
+    .hud-sub { color: #cbd5e1; font-size: 12px; }
+    .btn-pill {
+      pointer-events: auto;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      color: #fff; border: none; border-radius: 10px; padding: 8px 12px;
+      font-weight: 600; font-size: 12px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(14,165,233,0.35);
+    }
+    .btn-pill:active { transform: scale(0.97); }
+    .btn-pill.secondary { background: rgba(51,65,85,0.9); box-shadow: none; }
+    .btn-pill.gold { background: linear-gradient(135deg, #d97706, #f59e0b); }
 
-    .mobile-actions {
-      position: fixed; bottom: 155px; right: 20px; z-index: 16;
-      display: none; flex-direction: column; gap: 10px;
+    /* Sensorli Joystik */
+    #joy-zone {
+      position: fixed; left: 22px; bottom: 22px; width: 136px; height: 136px;
+      z-index: 25; border-radius: 50%;
+      background: rgba(15, 23, 42, 0.55); border: 2px solid rgba(255,255,255,0.22);
+      display: flex; align-items: center; justify-content: center;
     }
-    .m-btn {
-      background: rgba(15, 23, 42, 0.9); color: #fff; border: 2px solid #38bdf8;
-      border-radius: 12px; padding: 10px 14px; font-size: 13px; font-weight: 700;
+    #joy-knob {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #38bdf8, #0284c7);
+      border: 2px solid rgba(255,255,255,0.65);
+      transform: translate(0px, 0px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.45);
     }
-    .m-btn.base-btn { border-color: #f59e0b; color: #fde68a; }
 
-    .joy-zone {
-      position: fixed; bottom: 24px; right: 24px; width: 120px; height: 120px;
-      border-radius: 50%; background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.25); z-index: 15;
-      display: none; touch-action: none;
+    /* Kontekstli Harakat Tugmalari */
+    #action-zone {
+      position: fixed; right: 20px; bottom: 22px; z-index: 25;
+      display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+      max-width: 280px;
     }
-    .joy-knob {
-      position: absolute; width: 46px; height: 46px; border-radius: 50%;
-      background: rgba(56, 189, 248, 0.8); border: 2px solid #fff;
-      left: 37px; top: 37px; transform: translate(0px, 0px);
+    .action-btn {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: #fff; border: 2px solid rgba(255,255,255,0.45);
+      border-radius: 14px; padding: 12px 18px; font-size: 14px; font-weight: 700;
+      cursor: pointer; box-shadow: 0 8px 22px rgba(22,163,74,0.45);
+      min-width: 170px; text-align: center;
     }
-    @media (hover: none) and (pointer: coarse) {
-      .joy-zone, .mobile-actions { display: flex; }
-      .controls-hint, .github-link { display: none; }
-      .res-panel { top: 88px; }
+    .action-btn:active { transform: scale(0.96); }
+    .action-btn.blue { background: linear-gradient(135deg, #2563eb, #3b82f6); box-shadow: 0 8px 22px rgba(37,99,235,0.45); }
+    .action-btn.amber { background: linear-gradient(135deg, #d97706, #f59e0b); box-shadow: 0 8px 22px rgba(217,119,6,0.45); }
+    .action-btn.purple { background: linear-gradient(135deg, #7c3aed, #a855f7); box-shadow: 0 8px 22px rgba(124,58,237,0.45); }
+
+    /* Modal Oyna */
+    #modal-backdrop {
+      position: fixed; inset: 0; z-index: 40; display: none;
+      align-items: center; justify-content: center; padding: 16px;
+      background: rgba(2, 6, 23, 0.72); backdrop-filter: blur(6px);
+    }
+    #modal-box {
+      width: 100%; max-width: 640px; max-height: 82vh; overflow-y: auto;
+      background: #0f172a; border: 1px solid rgba(148,163,184,0.28);
+      border-radius: 16px; padding: 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.65);
+    }
+    .modal-head {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid rgba(148,163,184,0.18); padding-bottom: 10px; margin-bottom: 14px;
+    }
+    .modal-title { font-size: 17px; font-weight: 700; color: #f8fafc; }
+    .close-btn {
+      background: #334155; color: #fff; border: none; border-radius: 8px;
+      padding: 6px 12px; font-weight: 700; cursor: pointer;
+    }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+    .stat-box {
+      background: rgba(30,41,59,0.75); border: 1px solid rgba(148,163,184,0.16);
+      border-radius: 10px; padding: 10px 12px; font-size: 13px;
+    }
+    .row-flex { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+    .mini-btn {
+      background: #0284c7; color: #fff; border: none; border-radius: 7px;
+      padding: 5px 10px; font-weight: 700; cursor: pointer; font-size: 12px;
+    }
+    .mini-btn.gray { background: #475569; }
+    #toast {
+      position: fixed; top: 82px; left: 50%; transform: translateX(-50%);
+      z-index: 35; background: rgba(15,23,42,0.92); border: 1px solid #38bdf8;
+      color: #e0f2fe; padding: 8px 16px; border-radius: 999px; font-size: 13px;
+      font-weight: 600; display: none; pointer-events: none;
     }
   </style>
 </head>
 <body>
-  <!-- --- 1. KIRISHDA PROFIL YARATISH OYNASI --- -->
-  <div id="profileModal">
-    <div class="creator-card">
-      <div class="creator-title">
-        <h2>🧬 PROFIL VA QAHRAMON TUZILISHI</h2>
-        <span>O‘yinga kirishdan oldin sozlang (keyin [P] bilan o‘zgartirish mumkin)</span>
-      </div>
+  <div id="canvas-wrap"></div>
+  <div id="toast"></div>
 
-      <div class="controls-col">
-        <div class="field-group">
-          <label class="field-label" for="inpUsername">Username (Ism)</label>
-          <input id="inpUsername" class="text-input" type="text" maxlength="18" placeholder="Masalan: Behruz820" />
-        </div>
-
-        <div class="field-group">
-          <span class="field-label">Inson jinsi</span>
-          <div class="option-row" id="genderOptions">
-            <button type="button" class="opt-btn active" data-val="male">♂ Erkak</button>
-            <button type="button" class="opt-btn" data-val="female">♀ Ayol</button>
-            <button type="button" class="opt-btn" data-val="cyborg">🤖 Kiborg</button>
-          </div>
-        </div>
-
-        <div class="field-group">
-          <span class="field-label">Soch turmagi</span>
-          <div class="option-row" id="hairStyleOptions">
-            <button type="button" class="opt-btn active" data-val="short">Kalta</button>
-            <button type="button" class="opt-btn" data-val="spiky">Tik (Spiky)</button>
-            <button type="button" class="opt-btn" data-val="long">Uzun</button>
-            <button type="button" class="opt-btn" data-val="mohawk">Irokez</button>
-            <button type="button" class="opt-btn" data-val="bald">Taqir</button>
-          </div>
-        </div>
-
-        <div class="field-group">
-          <span class="field-label">Soch rangi</span>
-          <div class="swatch-row" id="hairColorSwatches">
-            <div class="swatch active" data-color="#1e293b" style="background:#1e293b"></div>
-            <div class="swatch" data-color="#78350f" style="background:#78350f"></div>
-            <div class="swatch" data-color="#facc15" style="background:#facc15"></div>
-            <div class="swatch" data-color="#dc2626" style="background:#dc2626"></div>
-            <div class="swatch" data-color="#38bdf8" style="background:#38bdf8"></div>
-            <div class="swatch" data-color="#a855f7" style="background:#a855f7"></div>
-            <div class="swatch" data-color="#f8fafc" style="background:#f8fafc"></div>
-            <input type="color" id="customHairColor" class="color-picker" title="Boshqa soch rangi" value="#38bdf8" />
-          </div>
-        </div>
-
-        <div class="field-group">
-          <span class="field-label">Kiyim rangi</span>
-          <div class="swatch-row" id="clothColorSwatches">
-            <div class="swatch active" data-color="#0284c7" style="background:#0284c7"></div>
-            <div class="swatch" data-color="#16a34a" style="background:#16a34a"></div>
-            <div class="swatch" data-color="#ea580c" style="background:#ea580c"></div>
-            <div class="swatch" data-color="#e11d48" style="background:#e11d48"></div>
-            <div class="swatch" data-color="#7c3aed" style="background:#7c3aed"></div>
-            <div class="swatch" data-color="#334155" style="background:#334155"></div>
-            <input type="color" id="customClothColor" class="color-picker" title="Boshqa kiyim rangi" value="#16a34a" />
-          </div>
-        </div>
-
-        <div class="field-group">
-          <span class="field-label">Teri rangi</span>
-          <div class="swatch-row" id="skinColorSwatches">
-            <div class="swatch active" data-color="#fed7aa" style="background:#fed7aa"></div>
-            <div class="swatch" data-color="#eab382" style="background:#eab382"></div>
-            <div class="swatch" data-color="#c68642" style="background:#c68642"></div>
-            <div class="swatch" data-color="#8d5524" style="background:#8d5524"></div>
-            <div class="swatch" data-color="#94a3b8" style="background:#94a3b8"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="preview-col">
-        <canvas id="previewCanvas"></canvas>
-        <div class="preview-meta">
-          <span class="preview-name" id="previewName">OmonQolgan</span>
-          <span id="previewMetaText">Erkak • Kalta soch</span>
-        </div>
-      </div>
-
-      <div class="start-row">
-        <button type="button" class="btn-random" id="btnRandomProfile">🎲 Tasodifiy</button>
-        <button type="button" class="btn-start" id="btnEnterGame">▶ O‘YINGA KIRISH</button>
-      </div>
+  <div id="top-bar">
+    <div class="hud-card" id="hud-world">
+      <div class="hud-title" id="world-label">Asosiy Olam — Qishloq (1/5)</div>
+      <div class="hud-sub" id="world-sub">Binolar: 5/20 | Aholi: 12 | Ovqat: 150 | Koordinata: (0, 0)</div>
+    </div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:flex-start;">
+      <button class="btn-pill gold" id="btn-open-upgrade">Rivojlanish (5 Bosqich)</button>
+      <button class="btn-pill" id="btn-open-warehouse">Katta Ombor</button>
+      <button class="btn-pill secondary" id="btn-open-map">60k Xarita</button>
     </div>
   </div>
 
-  <!-- --- 2. ASOSIY 3D O'YIN --- -->
-  <div id="sceneContainer"></div>
-
-  <div class="hud-top">
-    <div class="zone-badge" id="zoneBadge">3D Zona: Shahrcha</div>
-    <div class="coords-box" id="coordsBox">X: 0 | Z: 0 | Qahramon: OmonQolgan</div>
+  <!-- Sensorli Joystik -->
+  <div id="joy-zone">
+    <div id="joy-knob"></div>
   </div>
 
-  <div class="res-panel">
-    <div class="res-item">🪵 Yog‘och: <span id="resWood">0</span></div>
-    <div class="res-item">⚙️ Temir: <span id="resScrap">0</span></div>
-    <div class="res-item">⛽ Yonilg‘i: <span id="resFuel">0</span></div>
-    <div class="res-item">❄️ Muz: <span id="resIce">0</span></div>
-    <div class="res-item">🌊 Dengiz: <span id="resSea">0</span></div>
-    <div class="base-pill" id="baseSummary">🚛 Baza Lv.1 | Ombor: 0</div>
-    <button type="button" class="profile-open-btn" id="btnOpenProfile">👤 Profil [P]</button>
+  <!-- Sensorli Harakat Tugmalari -->
+  <div id="action-zone"></div>
+
+  <!-- Modal Oyna -->
+  <div id="modal-backdrop">
+    <div id="modal-box">
+      <div class="modal-head">
+        <div class="modal-title" id="modal-title">Oyna</div>
+        <button class="close-btn" id="modal-close">Yopish</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
   </div>
 
-  <div class="minimap-wrap">
-    <canvas id="minimap" width="156" height="156"></canvas>
-    <div class="minimap-caption">5 Zonalı 3D Xarita</div>
-  </div>
-
-  <div class="action-prompt" id="actionPrompt"></div>
-
-  <div class="controls-hint">
-    <b>WASD</b>: Yurish/Haydash • <b>Space</b>: Resurs yig‘ish • <b>F</b>: Baza • <b>P</b>: Profil • <b>Q/E</b>: Kamera
-  </div>
-
-  <div class="github-link">
-    GitHub: <a href="https://github.com/behruz820" target="_blank" rel="noopener">github.com/behruz820</a>
-  </div>
-
-  <div class="mobile-actions">
-    <button type="button" class="m-btn" id="btnGather">⛏️ Yig‘ish</button>
-    <button type="button" class="m-btn base-btn" id="btnBase">🚛 Baza (F)</button>
-  </div>
-
-  <div class="joy-zone" id="joyZone">
-    <div class="joy-knob" id="joyKnob"></div>
-  </div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
   <script>
-    const WORLD_SIZE = 6000;
-    const HALF = WORLD_SIZE / 2;
-    const TOWN_RADIUS = 1150;
+    // =========================================================================
+    // 1. O'YIN HOLATI VA KONFIGURATSIYA
+    // =========================================================================
+    const TIERS = [
+      { level: 1, name: "Qishloq",   buildingsCount: 5,  popCap: 24,  cost: {} },
+      { level: 2, name: "Shaharcha", buildingsCount: 7,  popCap: 45,  cost: { yogoch: 40, tosh: 30, oltin: 20 } },
+      { level: 3, name: "Shahar",    buildingsCount: 11, popCap: 90,  cost: { yogoch: 90, tosh: 80, temir: 40, oltin: 50 } },
+      { level: 4, name: "Graflik",   buildingsCount: 15, popCap: 160, cost: { yogoch: 160, tosh: 150, temir: 90, oltin: 110, tuya: 15 } },
+      { level: 5, name: "Qirollik",  buildingsCount: 20, popCap: 300, cost: { yogoch: 260, tosh: 250, temir: 160, oltin: 220, tuya: 35, suv: 120 } }
+    ];
 
-    // --- PROFIL MA'LUMOTLARI ---
-    const defaultProfile = {
-      username: "Behruz820",
-      gender: "male",       // male | female | cyborg
-      hairStyle: "short",   // short | spiky | long | mohawk | bald
-      hairColor: "#1e293b",
-      clothColor: "#0284c7",
-      skinColor: "#fed7aa"
+    const RESOURCE_META = {
+      yogoch: { label: "Yog'och",        world: "O'rmon" },
+      gosht:  { label: "Hayvon go'shti", world: "O'rmon" },
+      tosh:   { label: "Tosh",           world: "Tog'" },
+      temir:  { label: "Temir",          world: "Tog'" },
+      tuya:   { label: "Tuya",           world: "Cho'l" },
+      oltin:  { label: "Oltin",          world: "Cho'l" },
+      suv:    { label: "Suv",            world: "Dengiz" },
+      baliq:  { label: "Baliq",          world: "Dengiz" }
     };
 
-    function loadProfile() {
-      try {
-        const saved = JSON.parse(localStorage.getItem("apokalipsis_profile_v1"));
-        return Object.assign({}, defaultProfile, saved || {});
-      } catch (e) {
-        return Object.assign({}, defaultProfile);
-      }
-    }
+    const ALL_20_BUILDINGS = [
+      { id: "b1",  tierReq: 1, baseName: "Asosiy Uy",         kind: "home",     x: -24,  z: -16 },
+      { id: "b2",  tierReq: 1, baseName: "Aholi Yig'ini",     kind: "council",  x: 0,    z: -24 },
+      { id: "b3",  tierReq: 1, baseName: "Tegirmon",          kind: "mill",     x: 24,   z: -16 },
+      { id: "b4",  tierReq: 1, baseName: "Katta Ombor",       kind: "storage",  x: -22,  z: 18 },
+      { id: "b5",  tierReq: 1, baseName: "Turar Joy Uyi 1",   kind: "house",    x: 22,   z: 18 },
 
-    function saveProfile(p) {
-      try {
-        localStorage.setItem("apokalipsis_profile_v1", JSON.stringify(p));
-      } catch (e) {}
-    }
+      { id: "b6",  tierReq: 2, baseName: "Ustaxona",          kind: "workshop", x: -46,  z: -6 },
+      { id: "b7",  tierReq: 2, baseName: "Turar Joy Uyi 2",   kind: "house",    x: 46,   z: -6 },
 
-    const profile = loadProfile();
+      { id: "b8",  tierReq: 3, baseName: "Uch Qavatli Bino",  kind: "multi",    x: -46,  z: 24 },
+      { id: "b9",  tierReq: 3, baseName: "Temirchixona",      kind: "smith",    x: 46,   z: 24 },
+      { id: "b10", tierReq: 3, baseName: "Tibbiyot Punkti",   kind: "clinic",   x: -24,  z: -48 },
+      { id: "b11", tierReq: 3, baseName: "Qo'riqchi Minorasi", kind: "tower",    x: 24,   z: -48 },
 
-    // --- ODAM TUZILISHINI YIG'UVCHI FUNKSIYA (Preview va O'yin uchun) ---
-    function buildHumanCharacter(prof, scale = 1) {
-      const root = new THREE.Group();
+      { id: "b12", tierReq: 4, baseName: "Qal'a",             kind: "castle",   x: 0,    z: -74 },
+      { id: "b13", tierReq: 4, baseName: "Graflik Saroyi",    kind: "palace",   x: -74,  z: -24 },
+      { id: "b14", tierReq: 4, baseName: "Ta'minot Markazi",  kind: "depot",    x: 74,   z: -24 },
+      { id: "b15", tierReq: 4, baseName: "Harbiy Tayyorlov",   kind: "barracks", x: -74,  z: 24 },
 
-      const skinMat = new THREE.MeshStandardMaterial({
-        color: prof.gender === "cyborg" ? 0x94a3b8 : new THREE.Color(prof.skinColor),
-        roughness: prof.gender === "cyborg" ? 0.3 : 0.65,
-        metalness: prof.gender === "cyborg" ? 0.65 : 0.05
-      });
+      { id: "b16", tierReq: 5, baseName: "Qirollik Qasri",    kind: "royal",    x: 74,   z: 24 },
+      { id: "b17", tierReq: 5, baseName: "Qirollik Kengashi", kind: "council",  x: -50,  z: -72 },
+      { id: "b18", tierReq: 5, baseName: "Qirollik Xazinasi", kind: "treasury", x: 50,   z: -72 },
+      { id: "b19", tierReq: 5, baseName: "Buyuk Tegirmon",    kind: "mill",     x: -50,  z: 56 },
+      { id: "b20", tierReq: 5, baseName: "Qirollik Qo'riqchisi",kind: "tower",   x: 50,   z: 56 }
+    ];
 
-      const clothMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(prof.clothColor),
-        roughness: 0.55,
-        metalness: 0.1
-      });
-
-      const pantsMat = new THREE.MeshStandardMaterial({
-        color: 0x1e293b,
-        roughness: 0.8
-      });
-
-      const hairMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(prof.hairColor),
-        roughness: 0.6
-      });
-
-      const isFemale = prof.gender === "female";
-
-      // Oyoqlar
-      const legW = isFemale ? 4.5 : 5.5;
-      const legGeo = new THREE.CylinderGeometry(legW, legW * 0.85, 16, 10);
-      const leftLeg = new THREE.Mesh(legGeo, pantsMat);
-      leftLeg.position.set(-5.2, 8, 0);
-      leftLeg.castShadow = true;
-
-      const rightLeg = new THREE.Mesh(legGeo, pantsMat);
-      rightLeg.position.set(5.2, 8, 0);
-      rightLeg.castShadow = true;
-
-      // Tana (torso)
-      const topR = isFemale ? 9.5 : 12;
-      const botR = isFemale ? 8 : 11;
-      const torso = new THREE.Mesh(new THREE.CylinderGeometry(topR, botR, 20, 14), clothMat);
-      torso.position.y = 26;
-      torso.castShadow = true;
-
-      // Qo'llar
-      const armGeo = new THREE.CylinderGeometry(3.5, 3, 17, 10);
-      const leftArm = new THREE.Mesh(armGeo, skinMat);
-      leftArm.position.set(isFemale ? -12 : -15, 26, 0);
-      leftArm.rotation.z = 0.12;
-      leftArm.castShadow = true;
-
-      const rightArm = new THREE.Mesh(armGeo, skinMat);
-      rightArm.position.set(isFemale ? 12 : 15, 26, 0);
-      rightArm.rotation.z = -0.12;
-      rightArm.castShadow = true;
-
-      // Bosh
-      const headGroup = new THREE.Group();
-      headGroup.position.y = 43;
-
-      const head = new THREE.Mesh(new THREE.SphereGeometry(isFemale ? 9.5 : 10.5, 16, 16), skinMat);
-      head.castShadow = true;
-      headGroup.add(head);
-
-      // Ko'zlar / visor
-      const eyeMat = new THREE.MeshStandardMaterial({
-        color: prof.gender === "cyborg" ? 0x38bdf8 : 0x0f172a,
-        emissive: prof.gender === "cyborg" ? 0x0284c7 : 0x000000,
-        emissiveIntensity: prof.gender === "cyborg" ? 0.8 : 0
-      });
-      const eyeL = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.2, 2), eyeMat);
-      eyeL.position.set(-3.5, 1, 9.2);
-      const eyeR = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.2, 2), eyeMat);
-      eyeR.position.set(3.5, 1, 9.2);
-      headGroup.add(eyeL, eyeR);
-
-      // Soch turmagi
-      const hairGroup = new THREE.Group();
-      if (prof.hairStyle === "short") {
-        const cap = new THREE.Mesh(
-          new THREE.SphereGeometry(isFemale ? 10.1 : 11.1, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.62),
-          hairMat
-        );
-        cap.position.y = 1.2;
-        cap.rotation.x = -0.2;
-        hairGroup.add(cap);
-      } else if (prof.hairStyle === "spiky") {
-        for (let i = 0; i < 7; i++) {
-          const spike = new THREE.Mesh(new THREE.ConeGeometry(3.2, 8.5, 6), hairMat);
-          const ang = (i / 7) * Math.PI * 2;
-          spike.position.set(Math.cos(ang) * 5.5, 11.5, Math.sin(ang) * 5.5);
-          spike.rotation.z = -Math.cos(ang) * 0.45;
-          spike.rotation.x = Math.sin(ang) * 0.45;
-          hairGroup.add(spike);
-        }
-      } else if (prof.hairStyle === "long") {
-        const cap = new THREE.Mesh(
-          new THREE.SphereGeometry(10.5, 16, 14, 0, Math.PI * 2, 0, Math.PI * 0.72),
-          hairMat
-        );
-        cap.position.y = 1.2;
-        const back = new THREE.Mesh(new THREE.BoxGeometry(15, 22, 7), hairMat);
-        back.position.set(0, -8, -6.5);
-        hairGroup.add(cap, back);
-      } else if (prof.hairStyle === "mohawk") {
-        for (let i = -2; i <= 2; i++) {
-          const crest = new THREE.Mesh(new THREE.BoxGeometry(3.5, 9, 4), hairMat);
-          crest.position.set(0, 12.5, i * 3.6);
-          hairGroup.add(crest);
-        }
-      }
-      // "bald" bo'lsa qo'shimcha soch qo'shilmaydi
-
-      headGroup.add(hairGroup);
-      root.add(leftLeg, rightLeg, torso, leftArm, rightArm, headGroup);
-      root.scale.setScalar(scale);
-      return root;
-    }
-
-    // --- PREVIEW SAHNASI (PROFIL OYNASI UCHUN) ---
-    const previewCanvas = document.getElementById("previewCanvas");
-    const pScene = new THREE.Scene();
-    pScene.background = new THREE.Color(0x0b1220);
-
-    const pCamera = new THREE.PerspectiveCamera(42, 320 / 240, 0.1, 500);
-    pCamera.position.set(0, 32, 92);
-    pCamera.lookAt(0, 26, 0);
-
-    const pRenderer = new THREE.WebGLRenderer({ canvas: previewCanvas, antialias: true, alpha: true });
-    pRenderer.setSize(previewCanvas.clientWidth || 320, previewCanvas.clientHeight || 240, false);
-
-    pScene.add(new THREE.HemisphereLight(0xffffff, 0x334155, 1.1));
-    const pLight = new THREE.DirectionalLight(0xfffbeb, 1.0);
-    pLight.position.set(40, 80, 60);
-    pScene.add(pLight);
-
-    const standMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(20, 22, 3, 28),
-      new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.4, roughness: 0.5 })
-    );
-    standMesh.position.y = -1.5;
-    pScene.add(standMesh);
-
-    let previewChar = buildHumanCharacter(profile, 1);
-    pScene.add(previewChar);
-
-    function syncPreviewUI() {
-      document.getElementById("inpUsername").value = profile.username;
-      document.getElementById("previewName").textContent = profile.username || "Nomsiz";
-
-      const gMap = { male: "Erkak", female: "Ayol", cyborg: "Kiborg" };
-      const hMap = { short: "Kalta soch", spiky: "Tik soch", long: "Uzun soch", mohawk: "Irokez", bald: "Taqir bosh" };
-      document.getElementById("previewMetaText").textContent = `${gMap[profile.gender]} • ${hMap[profile.hairStyle]}`;
-
-      document.querySelectorAll("#genderOptions .opt-btn").forEach(b => {
-        b.classList.toggle("active", b.dataset.val === profile.gender);
-      });
-      document.querySelectorAll("#hairStyleOptions .opt-btn").forEach(b => {
-        b.classList.toggle("active", b.dataset.val === profile.hairStyle);
-      });
-      document.querySelectorAll("#hairColorSwatches .swatch").forEach(s => {
-        s.classList.toggle("active", s.dataset.color.toLowerCase() === profile.hairColor.toLowerCase());
-      });
-      document.querySelectorAll("#clothColorSwatches .swatch").forEach(s => {
-        s.classList.toggle("active", s.dataset.color.toLowerCase() === profile.clothColor.toLowerCase());
-      });
-      document.querySelectorAll("#skinColorSwatches .swatch").forEach(s => {
-        s.classList.toggle("active", s.dataset.color.toLowerCase() === profile.skinColor.toLowerCase());
-      });
-
-      pScene.remove(previewChar);
-      previewChar = buildHumanCharacter(profile, 1);
-      pScene.add(previewChar);
-    }
-
-    // --- ASOSIY 3D DUNYO (2-BOSQICH) ---
-    const container = document.getElementById("sceneContainer");
-    const zoneBadge = document.getElementById("zoneBadge");
-    const coordsBox = document.getElementById("coordsBox");
-    const miniCanvas = document.getElementById("minimap");
-    const mctx = miniCanvas.getContext("2d");
-    const actionPrompt = document.getElementById("actionPrompt");
-
-    const resEl = {
-      wood: document.getElementById("resWood"),
-      scrap: document.getElementById("resScrap"),
-      fuel: document.getElementById("resFuel"),
-      ice: document.getElementById("resIce"),
-      sea: document.getElementById("resSea"),
-      base: document.getElementById("baseSummary")
+    const STAGE_TITLES_BY_KIND = {
+      home:     ["Uy", "Mehmonxona", "Uch Qavatli Uy", "Qal'a Uy", "Qasr"],
+      house:    ["Kulba", "Keng Uy", "Ikki Qavatli Uy", "Graflik Uyi", "Qirollik Uyi"],
+      multi:    ["Kichik Bino", "Mehmonxona", "Uch Qavatli Bino", "Graflik Binosi", "Saroy Binosi"],
+      castle:   ["Qal'a", "Mustahkam Qal'a", "Katta Qal'a", "Graflik Qal'asi", "Buyuk Qal'a"],
+      palace:   ["Saroycha", "Hokimiyat", "Shahar Saroyi", "Graflik Saroyi", "Qirollik Saroyi"],
+      royal:    ["Qasrcha", "Katta Uy", "Saroy", "Qal'a-Qasr", "Qirollik Qasri"],
+      council:  ["Kichik Yig'in", "Boshqaruv Uyi", "Shahar Kengashi", "Graflik Majlisi", "Qirollik Kengashi"],
+      mill:     ["Qo'l Tegirmoni", "Shamol Tegirmoni", "Yirik Tegirmon", "Tegirmon Majmuasi", "Qirollik Tegirmoni"],
+      storage:  ["Kichik Ombor", "Keng Ombor", "Ko'p Qavatli Ombor", "Graflik Ombori", "Cheksiz Xazina"],
+      depot:    ["Ta'minot Nuqtasi", "Yukxona", "Markaziy Ombor", "Graflik Markazi", "Qirollik Ta'minoti"],
+      treasury: ["Sandiqxona", "Xazina", "Katta Xazina", "Graflik Xazinasi", "Qirollik Xazinasi"],
+      workshop: ["Ustaxona", "Keng Ustaxona", "Ishlab Chiqarish", "Graflik Ustaxonasi", "Qirollik Ustaxonasi"],
+      smith:    ["Temirchixona", "O'choqxona", "Metall Sexi", "Graflik Temirchisi", "Qirollik Temirchisi"],
+      clinic:   ["Quduq/Shifo", "Tibbiyot Uyi", "Shifoxona", "Graflik Shifosi", "Qirollik Shifosi"],
+      tower:    ["Panjara Posti", "Qo'riqchi Uyi", "Qo'riqchi Minorasi", "Graflik Minorasi", "Qirollik Minorasi"],
+      barracks: ["Mashq Joyi", "Qo'shin Uyi", "Kazarma", "Graflik Qo'shini", "Qirollik Gvardiyasi"]
     };
 
+    const state = {
+      currentWorld: "main",
+      civTier: 1,
+      buildingLevels: {},
+      warehouse: {
+        yogoch: 120, gosht: 90,
+        tosh: 110,   temir: 60,
+        tuya: 10,    oltin: 80,
+        suv: 140,    baliq: 85
+      },
+      ratesPerSec: {
+        yogoch: 0, gosht: 0,
+        tosh: 0,   temir: 0,
+        tuya: 0,   oltin: 0,
+        suv: 0,    baliq: 0
+      },
+      population: 12,
+      food: 150,
+      energy: 100,
+      workers: { mill: 3, sex: 4, builder: 2 },
+      sexes: {
+        ormon:  { built: false, level: 1, workers: 1, resA: "yogoch", resB: "gosht" },
+        tog:    { built: false, level: 1, workers: 1, resA: "tosh",   resB: "temir" },
+        chol:   { built: false, level: 1, workers: 1, resA: "tuya",   resB: "oltin" },
+        dengiz: { built: false, level: 1, workers: 1, resA: "suv",    resB: "baliq" }
+      },
+      insideBuilding: null,
+      doorsOpen: {}
+    };
+
+    ALL_20_BUILDINGS.forEach(b => { state.buildingLevels[b.id] = 1; });
+
+    function getBuildingDisplayName(b) {
+      const lvl = state.buildingLevels[b.id] || 1;
+      const arr = STAGE_TITLES_BY_KIND[b.kind] || [b.baseName];
+      return `${arr[Math.min(lvl - 1, arr.length - 1)]} (Lv.${lvl})`;
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.style.display = "block";
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => { el.style.display = "none"; }, 2400);
+    }
+
+    // =========================================================================
+    // 2. THREE.JS SAHNA, KAMERA VA TO'LIQ 3D GAVDALI ODAM + YUK KO'TARISH
+    // =========================================================================
+    const container = document.getElementById("canvas-wrap");
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0f172a);
-    scene.fog = new THREE.FogExp2(0x1e293b, 0.00042);
+    scene.background = new THREE.Color(0x69a7d8);
+    scene.fog = new THREE.FogExp2(0x69a7d8, 0.0022);
 
-    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1, 4500);
+    const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.2, 1200);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
-    window.addEventListener("resize", () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      if (previewCanvas.clientWidth > 0) {
-        pRenderer.setSize(previewCanvas.clientWidth, previewCanvas.clientHeight, false);
-        pCamera.aspect = previewCanvas.clientWidth / previewCanvas.clientHeight;
-        pCamera.updateProjectionMatrix();
-      }
-    });
-
-    const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x334155, 0.85);
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x3b4d3b, 0.9);
     scene.add(hemiLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.1);
-    dirLight.position.set(600, 1200, 600);
+    const dirLight = new THREE.DirectionalLight(0xfff7e6, 1.25);
+    dirLight.position.set(45, 75, 35);
     dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
-    const d = 1400;
-    dirLight.shadow.camera.left = -d;
-    dirLight.shadow.camera.right = d;
-    dirLight.shadow.camera.top = d;
-    dirLight.shadow.camera.bottom = -d;
-    dirLight.shadow.camera.far = 3500;
+    dirLight.shadow.mapSize.set(1024, 1024);
+    const dCam = 85;
+    dirLight.shadow.camera.left = -dCam;
+    dirLight.shadow.camera.right = dCam;
+    dirLight.shadow.camera.top = dCam;
+    dirLight.shadow.camera.bottom = -dCam;
     scene.add(dirLight);
     scene.add(dirLight.target);
 
-    function getZone(x, z) {
-      if (Math.hypot(x, z) <= TOWN_RADIUS) {
-        return { id: "town", name: "Shahrcha", color: "#f59e0b" };
+    const worldGroup = new THREE.Group();
+    scene.add(worldGroup);
+
+    function createFullBodyHuman({ shirtHex = 0x1d4ed8, pantsHex = 0x1e293b, hairHex = 0x231f20, skinHex = 0xe8b896, carryType = null }) {
+      const root = new THREE.Group();
+
+      const skinMat  = new THREE.MeshStandardMaterial({ color: skinHex, roughness: 0.65 });
+      const hairMat  = new THREE.MeshStandardMaterial({ color: hairHex, roughness: 0.7 });
+      const shirtMat = new THREE.MeshStandardMaterial({ color: shirtHex, roughness: 0.6 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: pantsHex, roughness: 0.7 });
+      const bootMat  = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.8 });
+
+      // Uzun oyoqlar (0.95)
+      const legGeo = new THREE.BoxGeometry(0.22, 0.95, 0.24);
+      const leftLegPivot = new THREE.Group();
+      leftLegPivot.position.set(-0.15, 0.95, 0);
+      const leftLeg = new THREE.Mesh(legGeo, pantsMat);
+      leftLeg.position.y = -0.475;
+      leftLeg.castShadow = true;
+      const leftBoot = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.14, 0.34), bootMat);
+      leftBoot.position.set(0, -0.9, 0.05);
+      leftLegPivot.add(leftLeg, leftBoot);
+
+      const rightLegPivot = new THREE.Group();
+      rightLegPivot.position.set(0.15, 0.95, 0);
+      const rightLeg = new THREE.Mesh(legGeo, pantsMat);
+      rightLeg.position.y = -0.475;
+      rightLeg.castShadow = true;
+      const rightBoot = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.14, 0.34), bootMat);
+      rightBoot.position.set(0, -0.9, 0.05);
+      rightLegPivot.add(rightLeg, rightBoot);
+
+      // Uzun gavda (0.85)
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.85, 0.28), shirtMat);
+      torso.position.set(0, 0.95 + 0.425, 0);
+      torso.castShadow = true;
+
+      // Uzun qo'llar (0.78)
+      const armGeo = new THREE.BoxGeometry(0.17, 0.78, 0.18);
+      const leftArmPivot = new THREE.Group();
+      leftArmPivot.position.set(-0.37, 1.74, 0);
+      const leftArm = new THREE.Mesh(armGeo, shirtMat);
+      leftArm.position.y = -0.34;
+      const leftHand = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 10), skinMat);
+      leftHand.position.y = -0.74;
+      leftArmPivot.add(leftArm, leftHand);
+
+      const rightArmPivot = new THREE.Group();
+      rightArmPivot.position.set(0.37, 1.74, 0);
+      const rightArm = new THREE.Mesh(armGeo, shirtMat);
+      rightArm.position.y = -0.34;
+      const rightHand = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 10), skinMat);
+      rightHand.position.y = -0.74;
+      rightArmPivot.add(rightArm, rightHand);
+
+      // Bosh
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0, 1.82, 0);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 16), skinMat);
+      head.position.y = 0.24;
+      head.castShadow = true;
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.255, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.58), hairMat);
+      hair.position.set(0, 0.26, -0.02);
+      headGroup.add(head, hair);
+
+      // Agar yuk ko'targan ishchi bo'lsa: qo'llari oldinga ko'tarilib qop yoki sandiq ko'taradi
+      let cargoMesh = null;
+      if (carryType === "sack") {
+        cargoMesh = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(0.32, 1),
+          new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.85 })
+        );
+        cargoMesh.scale.set(1.15, 0.85, 0.95);
+        cargoMesh.position.set(0, 1.28, 0.42);
+        cargoMesh.castShadow = true;
+      } else if (carryType === "crate") {
+        cargoMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(0.58, 0.36, 0.42),
+          new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.75 })
+        );
+        cargoMesh.position.set(0, 1.28, 0.42);
+        cargoMesh.castShadow = true;
       }
-      if (x < 0 && z < 0) return { id: "sea", name: "Dengiz", color: "#0284c7" };
-      if (x >= 0 && z < 0) return { id: "desert", name: "Cho‘l", color: "#eab308" };
-      if (x < 0 && z >= 0) return { id: "snow", name: "Qorli tog‘", color: "#e2e8f0" };
-      return { id: "forest", name: "O‘rmon", color: "#22c55e" };
+      if (cargoMesh) {
+        root.add(cargoMesh);
+        leftArmPivot.rotation.x = -0.95;
+        rightArmPivot.rotation.x = -0.95;
+      }
+
+      root.add(leftLegPivot, rightLegPivot, torso, leftArmPivot, rightArmPivot, headGroup);
+      root.userData = {
+        leftLegPivot, rightLegPivot, leftArmPivot, rightArmPivot,
+        carrying: Boolean(cargoMesh),
+        walkPhase: Math.random() * Math.PI * 2
+      };
+      return root;
     }
 
-    function seededRandom(seed) {
-      let s = seed % 2147483647;
-      if (s <= 0) s += 2147483646;
-      return () => {
-        s = (s * 16807) % 2147483647;
-        return (s - 1) / 2147483646;
+    const player = createFullBodyHuman({ shirtHex: 0x1d4ed8, pantsHex: 0x1e293b, hairHex: 0x111827 });
+    player.position.set(0, 0, 8);
+    scene.add(player);
+
+    // =========================================================================
+    // 3. AHOLI (NPC) 3D GAVDALARI — TASHQARIDA YUK BILAN VA BINOLAR ICHIDA
+    // =========================================================================
+    const npcGroup = new THREE.Group();
+    scene.add(npcGroup);
+    let npcs = []; // { mesh, role, waypoints, wpIndex, waitTimer, speed }
+
+    function getNpcRoleConfig(role) {
+      if (role === "mill") {
+        return {
+          shirtHex: 0x15803d, pantsHex: 0x365314, hairHex: 0x451a03, carryType: "sack",
+          waypoints: [new THREE.Vector3(24, 0, -10), new THREE.Vector3(-22, 0, 12), new THREE.Vector3(0, 0, -14)]
+        };
+      }
+      if (role === "sex") {
+        return {
+          shirtHex: 0x0369a1, pantsHex: 0x1e3a8a, hairHex: 0x1f2937, carryType: "crate",
+          waypoints: [new THREE.Vector3(-22, 0, 12), new THREE.Vector3(68, 0, 4), new THREE.Vector3(114, 0, 0)]
+        };
+      }
+      if (role === "builder") {
+        return {
+          shirtHex: 0xb45309, pantsHex: 0x334155, hairHex: 0x0f172a, carryType: null,
+          waypoints: [new THREE.Vector3(-34, 0, -28), new THREE.Vector3(34, 0, -28), new THREE.Vector3(34, 0, 30), new THREE.Vector3(-34, 0, 30)]
+        };
+      }
+      return {
+        shirtHex: 0x64748b, pantsHex: 0x1e293b, hairHex: 0x3f2e21, carryType: null,
+        waypoints: [new THREE.Vector3(-16, 0, 6), new THREE.Vector3(16, 0, 6), new THREE.Vector3(0, 0, -10)]
       };
     }
-    const rand = seededRandom(20261122);
 
-    // 5 ta 3D zona
-    const seaGeo = new THREE.PlaneGeometry(HALF, HALF, 24, 24);
-    seaGeo.rotateX(-Math.PI / 2);
-    const seaMesh = new THREE.Mesh(seaGeo, new THREE.MeshStandardMaterial({
-      color: 0x0284c7, roughness: 0.25, metalness: 0.35
-    }));
-    seaMesh.position.set(-HALF / 2, -2, -HALF / 2);
-    seaMesh.receiveShadow = true;
-    scene.add(seaMesh);
-
-    const desertMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(HALF, HALF).rotateX(-Math.PI / 2),
-      new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.9 })
-    );
-    desertMesh.position.set(HALF / 2, 0, -HALF / 2);
-    desertMesh.receiveShadow = true;
-    scene.add(desertMesh);
-
-    const snowMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(HALF, HALF).rotateX(-Math.PI / 2),
-      new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.75 })
-    );
-    snowMesh.position.set(-HALF / 2, 0, HALF / 2);
-    snowMesh.receiveShadow = true;
-    scene.add(snowMesh);
-
-    const forestMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(HALF, HALF).rotateX(-Math.PI / 2),
-      new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.85 })
-    );
-    forestMesh.position.set(HALF / 2, 0, HALF / 2);
-    forestMesh.receiveShadow = true;
-    scene.add(forestMesh);
-
-    const townMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(TOWN_RADIUS, TOWN_RADIUS + 20, 6, 64),
-      new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.85 })
-    );
-    townMesh.position.set(0, 1, 0);
-    townMesh.receiveShadow = true;
-    scene.add(townMesh);
-
-    const ringMesh = new THREE.Mesh(
-      new THREE.RingGeometry(TOWN_RADIUS - 12, TOWN_RADIUS + 8, 64).rotateX(-Math.PI / 2),
-      new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide })
-    );
-    ringMesh.position.set(0, 4.5, 0);
-    scene.add(ringMesh);
-
-    const roadMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
-    const roadX = new THREE.Mesh(new THREE.BoxGeometry(TOWN_RADIUS * 1.92, 2, 70), roadMat);
-    roadX.position.set(0, 4.2, 0);
-    roadX.receiveShadow = true;
-    scene.add(roadX);
-
-    const roadZ = new THREE.Mesh(new THREE.BoxGeometry(70, 2, TOWN_RADIUS * 1.92), roadMat);
-    roadZ.position.set(0, 4.2, 0);
-    roadZ.receiveShadow = true;
-    scene.add(roadZ);
-
-    // Binolar va tabiiy obyektlar
-    const bMat1 = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.7 });
-    const bMat2 = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.6 });
-    const roofMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
-
-    for (let i = 0; i < 34; i++) {
-      const angle = (i / 34) * Math.PI * 2;
-      const dist = 320 + rand() * 680;
-      const bx = Math.cos(angle) * dist;
-      const bz = Math.sin(angle) * dist;
-      if (Math.abs(bx) < 95 || Math.abs(bz) < 95) continue;
-      if (Math.hypot(bx - 180, bz - 180) < 160) continue;
-
-      const bw = 75 + rand() * 80;
-      const bd = 75 + rand() * 80;
-      const bh = 65 + rand() * 130;
-
-      const bMesh = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), rand() > 0.5 ? bMat1 : bMat2);
-      bMesh.position.set(bx, bh / 2 + 4, bz);
-      bMesh.castShadow = true;
-      bMesh.receiveShadow = true;
-      scene.add(bMesh);
-
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(bw + 6, 8, bd + 6), roofMat);
-      roof.position.set(bx, bh + 8, bz);
-      roof.castShadow = true;
-      scene.add(roof);
-    }
-
-    const islandMat = new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.9 });
-    const cactusMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.7 });
-    const rockMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.85 });
-    const snowCapMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
-    const leafMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.75 });
-
-    for (let i = 0; i < 360; i++) {
-      const px = -HALF + 140 + rand() * (WORLD_SIZE - 280);
-      const pz = -HALF + 140 + rand() * (WORLD_SIZE - 280);
-      const z = getZone(px, pz);
-      if (z.id === "town") continue;
-      const scale = 0.8 + rand() * 1.35;
-
-      if (z.id === "sea") {
-        const isl = new THREE.Mesh(new THREE.CylinderGeometry(22 * scale, 38 * scale, 12 * scale, 14), islandMat);
-        isl.position.set(px, 3 * scale, pz);
-        isl.castShadow = true;
-        isl.receiveShadow = true;
-        scene.add(isl);
-      } else if (z.id === "desert") {
-        const g = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(6 * scale, 7 * scale, 44 * scale, 8), cactusMat);
-        body.position.y = 22 * scale;
-        body.castShadow = true;
-        g.add(body);
-        g.position.set(px, 0, pz);
-        scene.add(g);
-      } else if (z.id === "snow") {
-        const g = new THREE.Group();
-        const h = 105 * scale;
-        const r = 62 * scale;
-        const mtn = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), rockMat);
-        mtn.position.y = h / 2;
-        mtn.castShadow = true;
-        const cap = new THREE.Mesh(new THREE.ConeGeometry(r * 0.48, h * 0.48, 7), snowCapMat);
-        cap.position.y = h * 0.76;
-        g.add(mtn, cap);
-        g.position.set(px, 0, pz);
-        scene.add(g);
-      } else if (z.id === "forest") {
-        const g = new THREE.Group();
-        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(5 * scale, 7 * scale, 30 * scale, 7), trunkMat);
-        trunk.position.y = 15 * scale;
-        trunk.castShadow = true;
-        const crown = new THREE.Mesh(new THREE.ConeGeometry(26 * scale, 58 * scale, 9), leafMat);
-        crown.position.y = 50 * scale;
-        crown.castShadow = true;
-        g.add(trunk, crown);
-        g.position.set(px, 0, pz);
-        scene.add(g);
+    function rebuild3DNpcs() {
+      while (npcGroup.children.length > 0) {
+        npcGroup.remove(npcGroup.children[0]);
       }
-    }
+      npcs = [];
 
-    const borderBox = new THREE.LineSegments(
-      new THREE.EdgesGeometry(new THREE.BoxGeometry(WORLD_SIZE, 80, WORLD_SIZE)),
-      new THREE.LineBasicMaterial({ color: 0xef4444 })
-    );
-    borderBox.position.set(0, 40, 0);
-    scene.add(borderBox);
+      // Agar bino ichida bo'lsak, bino ichidagi 3D ishchilarni joylashtiramiz
+      if (state.insideBuilding) {
+        const b = state.insideBuilding;
+        const lvl = state.buildingLevels[b.id] || 1;
+        const roomCount = Math.min(4, 1 + Math.floor((lvl + 1) / 2));
+        const totalW = 14 * roomCount;
 
-    // Qahramon konteyneri (ichidagi odam modeli profilga qarab yangilanadi)
-    const playerWrapper = new THREE.Group();
-    let playerCharacterMesh = buildHumanCharacter(profile, 1);
-    playerWrapper.add(playerCharacterMesh);
-    playerWrapper.position.set(90, 4, 90);
-    scene.add(playerWrapper);
+        const indoorWorkers = [
+          { role: "mill",    x: Math.min(totalW / 2 - 4.5, 10) - 1.8, z: -2.6, rotY: 0.4 },
+          { role: "sex",     x: Math.min(totalW / 2 - 4.5, 10) - 1.8, z: 2.2,  rotY: 1.2 },
+          { role: "builder", x: -1.8,                                 z: -2.2, rotY: -0.4 }
+        ];
 
-    function applyProfileToGame() {
-      playerWrapper.remove(playerCharacterMesh);
-      playerCharacterMesh = buildHumanCharacter(profile, 1);
-      playerWrapper.add(playerCharacterMesh);
-      saveProfile(profile);
-    }
+        indoorWorkers.forEach((iw, idx) => {
+          const cfg = getNpcRoleConfig(iw.role);
+          const mesh = createFullBodyHuman({ ...cfg, carryType: idx === 1 ? "crate" : null });
+          mesh.position.set(iw.x, 0, iw.z);
+          mesh.rotation.y = iw.rotY;
+          npcGroup.add(mesh);
 
-    // Harakatlanuvchi Baza (Landship)
-    const baseGroup = new THREE.Group();
-    const hull = new THREE.Mesh(
-      new THREE.BoxGeometry(74, 24, 118),
-      new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.65, metalness: 0.25 })
-    );
-    hull.position.y = 22;
-    hull.castShadow = true;
-    hull.receiveShadow = true;
-
-    const bridge = new THREE.Mesh(
-      new THREE.BoxGeometry(48, 22, 42),
-      new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.5, metalness: 0.2 })
-    );
-    bridge.position.set(0, 45, -18);
-    bridge.castShadow = true;
-
-    const turret = new THREE.Mesh(
-      new THREE.CylinderGeometry(10, 12, 14, 12),
-      new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.5 })
-    );
-    turret.position.set(0, 40, 28);
-    turret.castShadow = true;
-
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
-    for (const wz of [-38, 0, 38]) {
-      for (const wx of [-40, 40]) {
-        const w = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 10, 14).rotateZ(Math.PI / 2), wheelMat);
-        w.position.set(wx, 14, wz);
-        w.castShadow = true;
-        baseGroup.add(w);
+          npcs.push({
+            mesh,
+            role: iw.role,
+            waypoints: [
+              new THREE.Vector3(iw.x, 0, iw.z),
+              new THREE.Vector3(iw.x + 2.2, 0, iw.z + 1.5)
+            ],
+            wpIndex: 0,
+            waitTimer: 1.2 + idx * 0.7,
+            speed: 2.1
+          });
+        });
+        return;
       }
-    }
-    baseGroup.add(hull, bridge, turret);
-    baseGroup.position.set(220, 4, 220);
-    scene.add(baseGroup);
 
-    // 5 zonalı resurslar
-    const RESOURCE_TYPES = {
-      forest: { key: "wood", name: "Yog‘och", icon: "🪵", color: 0xa16207 },
-      town:   { key: "scrap", name: "Temir-tersak", icon: "⚙️", color: 0x94a3b8 },
-      desert: { key: "fuel", name: "Yonilg‘i kristali", icon: "⛽", color: 0xfacc15 },
-      snow:   { key: "ice", name: "Muz rudasi", icon: "❄️", color: 0x67e8f9 },
-      sea:    { key: "sea", name: "Dengiz xazinasi", icon: "🌊", color: 0x38bdf8 }
-    };
+      // Asosiy olam (Shahar) tashqarisidagi 3D aholi
+      if (state.currentWorld !== "main") return;
 
-    const resources = [];
-    function createResourceMesh(typeKey, color) {
-      let geo;
-      if (typeKey === "wood") geo = new THREE.CylinderGeometry(11, 13, 28, 7);
-      else if (typeKey === "scrap") geo = new THREE.BoxGeometry(22, 18, 22);
-      else if (typeKey === "fuel") geo = new THREE.OctahedronGeometry(16, 0);
-      else if (typeKey === "ice") geo = new THREE.DodecahedronGeometry(16, 0);
-      else geo = new THREE.TorusGeometry(13, 6, 8, 16);
+      const visibleCount = Math.min(state.population, 28);
+      const roles = [];
+      for (let i = 0; i < state.workers.mill; i++) roles.push("mill");
+      for (let i = 0; i < state.workers.sex; i++) roles.push("sex");
+      for (let i = 0; i < state.workers.builder; i++) roles.push("builder");
+      while (roles.length < visibleCount) roles.push("citizen");
 
-      const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
-        color, roughness: 0.4, metalness: 0.25, emissive: color, emissiveIntensity: 0.12
-      }));
-      mesh.castShadow = true;
-      return mesh;
-    }
+      for (let i = 0; i < visibleCount; i++) {
+        const role = roles[i];
+        const cfg = getNpcRoleConfig(role);
+        const mesh = createFullBodyHuman(cfg);
+        const wpStart = cfg.waypoints[i % cfg.waypoints.length].clone();
+        wpStart.x += (Math.random() - 0.5) * 8;
+        wpStart.z += (Math.random() - 0.5) * 8;
+        mesh.position.copy(wpStart);
+        npcGroup.add(mesh);
 
-    const zoneSpots = [
-      { zone: "town", count: 22, minR: 120, maxR: 980 },
-      { zone: "forest", count: 24, xMin: HALF * 0.15, xMax: HALF * 0.9, zMin: HALF * 0.15, zMax: HALF * 0.9 },
-      { zone: "desert", count: 24, xMin: HALF * 0.15, xMax: HALF * 0.9, zMin: -HALF * 0.9, zMax: -HALF * 0.15 },
-      { zone: "snow", count: 24, xMin: -HALF * 0.9, xMax: -HALF * 0.15, zMin: HALF * 0.15, zMax: HALF * 0.9 },
-      { zone: "sea", count: 24, xMin: -HALF * 0.9, xMax: -HALF * 0.15, zMin: -HALF * 0.9, zMax: -HALF * 0.15 }
-    ];
+        const shiftedWaypoints = cfg.waypoints.map(v =>
+          new THREE.Vector3(v.x + (Math.random() - 0.5) * 6, 0, v.z + (Math.random() - 0.5) * 6)
+        );
 
-    for (const sp of zoneSpots) {
-      for (let i = 0; i < sp.count; i++) {
-        let rx, rz;
-        if (sp.zone === "town") {
-          const ang = rand() * Math.PI * 2;
-          const rad = sp.minR + rand() * (sp.maxR - sp.minR);
-          rx = Math.cos(ang) * rad;
-          rz = Math.sin(ang) * rad;
-        } else {
-          rx = sp.xMin + rand() * (sp.xMax - sp.xMin);
-          rz = sp.zMin + rand() * (sp.zMax - sp.zMin);
-        }
-
-        const cfg = RESOURCE_TYPES[sp.zone];
-        const mesh = createResourceMesh(cfg.key, cfg.color);
-        const yPos = sp.zone === "town" ? 16 : 14;
-        mesh.position.set(rx, yPos, rz);
-        scene.add(mesh);
-
-        resources.push({
-          zone: sp.zone, key: cfg.key, name: cfg.name, icon: cfg.icon,
-          x: rx, z: rz, baseY: yPos,
-          amount: 5 + Math.floor(rand() * 6),
-          available: true, respawnTimer: 0, mesh
+        npcs.push({
+          mesh,
+          role,
+          waypoints: shiftedWaypoints,
+          wpIndex: (i + 1) % shiftedWaypoints.length,
+          waitTimer: Math.random() * 1.4,
+          speed: 3.3 + Math.random() * 1.6
         });
       }
     }
 
-    // --- PROFIL OYNASI HODISALARI ---
-    const profileModal = document.getElementById("profileModal");
+    function update3DNpcs(dt) {
+      if (npcs.length === 0) return;
 
-    document.getElementById("inpUsername").addEventListener("input", (e) => {
-      profile.username = e.target.value;
-      document.getElementById("previewName").textContent = profile.username.trim() || "Nomsiz";
-    });
-
-    document.querySelectorAll("#genderOptions .opt-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        profile.gender = btn.dataset.val;
-        syncPreviewUI();
-      });
-    });
-
-    document.querySelectorAll("#hairStyleOptions .opt-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        profile.hairStyle = btn.dataset.val;
-        syncPreviewUI();
-      });
-    });
-
-    document.querySelectorAll("#hairColorSwatches .swatch").forEach(sw => {
-      sw.addEventListener("click", () => {
-        profile.hairColor = sw.dataset.color;
-        syncPreviewUI();
-      });
-    });
-    document.getElementById("customHairColor").addEventListener("input", (e) => {
-      profile.hairColor = e.target.value;
-      syncPreviewUI();
-    });
-
-    document.querySelectorAll("#clothColorSwatches .swatch").forEach(sw => {
-      sw.addEventListener("click", () => {
-        profile.clothColor = sw.dataset.color;
-        syncPreviewUI();
-      });
-    });
-    document.getElementById("customClothColor").addEventListener("input", (e) => {
-      profile.clothColor = e.target.value;
-      syncPreviewUI();
-    });
-
-    document.querySelectorAll("#skinColorSwatches .swatch").forEach(sw => {
-      sw.addEventListener("click", () => {
-        profile.skinColor = sw.dataset.color;
-        syncPreviewUI();
-      });
-    });
-
-    document.getElementById("btnRandomProfile").addEventListener("click", () => {
-      const genders = ["male", "female", "cyborg"];
-      const hairs = ["short", "spiky", "long", "mohawk", "bald"];
-      const hColors = ["#1e293b", "#78350f", "#facc15", "#dc2626", "#38bdf8", "#a855f7", "#f8fafc"];
-      const cColors = ["#0284c7", "#16a34a", "#ea580c", "#e11d48", "#7c3aed", "#334155"];
-      const sColors = ["#fed7aa", "#eab382", "#c68642", "#8d5524", "#94a3b8"];
-      const names = ["OmonQolgan", "TitanX", "Kira99", "Nomad", "Vortex", "Sora"];
-
-      profile.username = names[Math.floor(Math.random() * names.length)] + Math.floor(10 + Math.random() * 89);
-      profile.gender = genders[Math.floor(Math.random() * genders.length)];
-      profile.hairStyle = hairs[Math.floor(Math.random() * hairs.length)];
-      profile.hairColor = hColors[Math.floor(Math.random() * hColors.length)];
-      profile.clothColor = cColors[Math.floor(Math.random() * cColors.length)];
-      profile.skinColor = sColors[Math.floor(Math.random() * sColors.length)];
-      syncPreviewUI();
-    });
-
-    function openProfileModal() {
-      syncPreviewUI();
-      profileModal.style.display = "flex";
-    }
-
-    function closeProfileAndStart() {
-      const cleanName = document.getElementById("inpUsername").value.trim();
-      profile.username = cleanName || "OmonQolgan";
-      applyProfileToGame();
-      profileModal.style.display = "none";
-    }
-
-    document.getElementById("btnEnterGame").addEventListener("click", closeProfileAndStart);
-    document.getElementById("btnOpenProfile").addEventListener("click", openProfileModal);
-    syncPreviewUI();
-
-    // --- O'YIN HOLATI ---
-    const state = {
-      inBase: false,
-      playerRotY: 0,
-      baseRotY: 0,
-      playerSpeed: 370,
-      baseSpeed: 460,
-      inv: { wood: 0, scrap: 0, fuel: 0, ice: 0, sea: 0 },
-      baseStorage: 0,
-      baseLevel: 1
-    };
-
-    function refreshHUD() {
-      resEl.wood.textContent = state.inv.wood;
-      resEl.scrap.textContent = state.inv.scrap;
-      resEl.fuel.textContent = state.inv.fuel;
-      resEl.ice.textContent = state.inv.ice;
-      resEl.sea.textContent = state.inv.sea;
-      resEl.base.textContent = `🚛 Baza Lv.${state.baseLevel} | Ombor: ${state.baseStorage}`;
-    }
-    refreshHUD();
-
-    function getCarriedTotal() {
-      return state.inv.wood + state.inv.scrap + state.inv.fuel + state.inv.ice + state.inv.sea;
-    }
-
-    function depositToBase() {
-      const total = getCarriedTotal();
-      if (total <= 0) return;
-      state.baseStorage += total;
-      state.inv.wood = 0; state.inv.scrap = 0; state.inv.fuel = 0; state.inv.ice = 0; state.inv.sea = 0;
-      state.baseLevel = 1 + Math.floor(state.baseStorage / 25);
-      refreshHUD();
-    }
-
-    function toggleBaseMode() {
-      const distToBase = Math.hypot(
-        playerWrapper.position.x - baseGroup.position.x,
-        playerWrapper.position.z - baseGroup.position.z
-      );
-      if (!state.inBase) {
-        if (distToBase <= 145) {
-          state.inBase = true;
-          playerWrapper.visible = false;
-          depositToBase();
+      npcs.forEach(npc => {
+        if (npc.waitTimer > 0) {
+          npc.waitTimer -= dt;
+          npc.mesh.userData.leftLegPivot.rotation.x *= 0.82;
+          npc.mesh.userData.rightLegPivot.rotation.x *= 0.82;
+          if (!npc.mesh.userData.carrying) {
+            npc.mesh.userData.leftArmPivot.rotation.x *= 0.82;
+            npc.mesh.userData.rightArmPivot.rotation.x *= 0.82;
+          }
+          return;
         }
-      } else {
-        state.inBase = false;
-        playerWrapper.visible = true;
-        const sideX = Math.cos(state.baseRotY) * 62;
-        const sideZ = -Math.sin(state.baseRotY) * 62;
-        playerWrapper.position.set(
-          Math.max(-HALF + 30, Math.min(HALF - 30, baseGroup.position.x + sideX)),
-          baseGroup.position.y,
-          Math.max(-HALF + 30, Math.min(HALF - 30, baseGroup.position.z + sideZ))
+
+        const target = npc.waypoints[npc.wpIndex];
+        const dx = target.x - npc.mesh.position.x;
+        const dz = target.z - npc.mesh.position.z;
+        const dist = Math.hypot(dx, dz);
+
+        if (dist < 1.1) {
+          npc.wpIndex = (npc.wpIndex + 1) % npc.waypoints.length;
+          npc.waitTimer = 0.7 + Math.random() * 1.6;
+          return;
+        }
+
+        const vx = dx / dist;
+        const vz = dz / dist;
+        npc.mesh.position.x += vx * npc.speed * dt;
+        npc.mesh.position.z += vz * npc.speed * dt;
+        npc.mesh.rotation.y = Math.atan2(vx, vz);
+
+        npc.mesh.userData.walkPhase += dt * 9.5;
+        const swing = Math.sin(npc.mesh.userData.walkPhase) * 0.6;
+        npc.mesh.userData.leftLegPivot.rotation.x = swing;
+        npc.mesh.userData.rightLegPivot.rotation.x = -swing;
+
+        if (!npc.mesh.userData.carrying) {
+          npc.mesh.userData.leftArmPivot.rotation.x = -swing * 0.7;
+          npc.mesh.userData.rightArmPivot.rotation.x = swing * 0.7;
+        }
+      });
+    }
+
+    // =========================================================================
+    // 4. YORITMA / LABEL YARATISH
+    // =========================================================================
+    function makeTextSprite(text, bgColor = "rgba(15,23,42,0.85)", fgColor = "#ffffff") {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 128;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = bgColor;
+      ctx.beginPath();
+      ctx.roundRect(16, 20, 480, 88, 24);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.35)";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.font = "bold 42px sans-serif";
+      ctx.fillStyle = fgColor;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, 256, 65);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(7.5, 1.9, 1);
+      return sprite;
+    }
+
+    // =========================================================================
+    // 5. BINOLAR, ICHKI XONALAR VA ESHIKLAR
+    // =========================================================================
+    let interactables = [];
+    let doorMeshes = {};
+    let colliders = [];
+
+    function clearWorldGroup() {
+      while (worldGroup.children.length > 0) {
+        worldGroup.remove(worldGroup.children[0]);
+      }
+      interactables = [];
+      doorMeshes = {};
+      colliders = [];
+    }
+
+    function buildRealisticExterior(b) {
+      const lvl = state.buildingLevels[b.id] || 1;
+      const scaleH = 1 + (lvl - 1) * 0.22;
+      const width  = (b.kind === "castle" || b.kind === "royal" || b.kind === "palace") ? 18 :
+                     (b.kind === "storage" || b.kind === "mill") ? 13 : 10.5;
+      const depth  = (b.kind === "castle" || b.kind === "royal" || b.kind === "palace") ? 16 :
+                     (b.kind === "storage" || b.kind === "mill") ? 12 : 9.5;
+      const height = 6.2 * scaleH;
+
+      const g = new THREE.Group();
+      g.position.set(b.x, 0, b.z);
+
+      const plinth = new THREE.Mesh(
+        new THREE.BoxGeometry(width + 1.2, 0.7, depth + 1.2),
+        new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.85 })
+      );
+      plinth.position.y = 0.35;
+      plinth.receiveShadow = true;
+      g.add(plinth);
+
+      const wallMat = new THREE.MeshStandardMaterial({
+        color: b.kind === "mill" ? 0xd6d3d1 :
+               b.kind === "castle" || b.kind === "royal" ? 0x94a3b8 :
+               b.kind === "storage" ? 0x78350f : 0xe2e8f0,
+        roughness: 0.75
+      });
+
+      const backWall = new THREE.Mesh(new THREE.BoxGeometry(width, height, 0.6), wallMat);
+      backWall.position.set(0, 0.7 + height / 2, -depth / 2 + 0.3);
+      backWall.castShadow = true;
+      backWall.receiveShadow = true;
+
+      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.6, height, depth), wallMat);
+      leftWall.position.set(-width / 2 + 0.3, 0.7 + height / 2, 0);
+      leftWall.castShadow = true;
+
+      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.6, height, depth), wallMat);
+      rightWall.position.set(width / 2 - 0.3, 0.7 + height / 2, 0);
+      rightWall.castShadow = true;
+
+      const doorW = 2.6, doorH = 3.4;
+      const sideW = (width - doorW) / 2;
+      const frontLeft = new THREE.Mesh(new THREE.BoxGeometry(sideW, height, 0.6), wallMat);
+      frontLeft.position.set(-doorW / 2 - sideW / 2, 0.7 + height / 2, depth / 2 - 0.3);
+      frontLeft.castShadow = true;
+
+      const frontRight = new THREE.Mesh(new THREE.BoxGeometry(sideW, height, 0.6), wallMat);
+      frontRight.position.set(doorW / 2 + sideW / 2, 0.7 + height / 2, depth / 2 - 0.3);
+      frontRight.castShadow = true;
+
+      const topLintelH = Math.max(0.8, height - doorH);
+      const frontTop = new THREE.Mesh(new THREE.BoxGeometry(doorW, topLintelH, 0.6), wallMat);
+      frontTop.position.set(0, 0.7 + doorH + topLintelH / 2, depth / 2 - 0.3);
+      frontTop.castShadow = true;
+
+      g.add(backWall, leftWall, rightWall, frontLeft, frontRight, frontTop);
+
+      const roofMat = new THREE.MeshStandardMaterial({
+        color: b.kind === "castle" || b.kind === "royal" ? 0x1e3a8a : 0x991b1b,
+        roughness: 0.65
+      });
+      const roof = new THREE.Mesh(
+        new THREE.ConeGeometry(Math.max(width, depth) * 0.78, 3.6 + lvl * 0.35, 4),
+        roofMat
+      );
+      roof.position.set(0, 0.7 + height + 1.8 + lvl * 0.17, 0);
+      roof.rotation.y = Math.PI / 4;
+      roof.castShadow = true;
+      g.add(roof);
+
+      if (b.kind === "mill") {
+        const blades = new THREE.Group();
+        blades.position.set(0, 0.7 + height * 0.7, depth / 2 + 0.5);
+        const bladeMat = new THREE.MeshStandardMaterial({ color: 0xfef3c7, side: THREE.DoubleSide });
+        for (let i = 0; i < 4; i++) {
+          const arm = new THREE.Mesh(new THREE.BoxGeometry(0.35, 5.2, 0.12), bladeMat);
+          arm.rotation.z = (i * Math.PI) / 2;
+          arm.position.set(Math.cos(arm.rotation.z) * 2.4, Math.sin(arm.rotation.z) * 2.4, 0);
+          blades.add(arm);
+        }
+        blades.userData.isMillBlade = true;
+        g.add(blades);
+      }
+
+      const doorKey = `ext_${b.id}`;
+      const doorPivot = new THREE.Group();
+      doorPivot.position.set(-doorW / 2, 0.7, depth / 2 - 0.3);
+      const doorPanel = new THREE.Mesh(
+        new THREE.BoxGeometry(doorW, doorH, 0.18),
+        new THREE.MeshStandardMaterial({ color: 0x7c2d12, roughness: 0.6 })
+      );
+      doorPanel.position.set(doorW / 2, doorH / 2, 0);
+      doorPanel.castShadow = true;
+      doorPivot.add(doorPanel);
+      if (state.doorsOpen[doorKey]) doorPivot.rotation.y = -Math.PI / 2;
+      g.add(doorPivot);
+      doorMeshes[doorKey] = { pivot: doorPivot, key: doorKey };
+
+      const label = makeTextSprite(getBuildingDisplayName(b));
+      label.position.set(0, 0.7 + height + 5.2, 0);
+      g.add(label);
+
+      worldGroup.add(g);
+
+      const frontDoorWorldX = b.x;
+      const frontDoorWorldZ = b.z + depth / 2 + 1.4;
+
+      interactables.push({
+        id: `enter_${b.id}`,
+        label: `${getBuildingDisplayName(b)} — Kirish`,
+        actionType: "enter_building",
+        style: "",
+        pos: new THREE.Vector3(frontDoorWorldX, 0, frontDoorWorldZ),
+        radius: 5.5,
+        data: { building: b }
+      });
+
+      interactables.push({
+        id: `door_${doorKey}`,
+        label: state.doorsOpen[doorKey] ? "Eshikni yopish" : "Eshikni ochish",
+        actionType: "toggle_door",
+        style: "blue",
+        pos: new THREE.Vector3(frontDoorWorldX + 1.8, 0, frontDoorWorldZ - 0.5),
+        radius: 4.5,
+        data: { doorKey }
+      });
+
+      colliders.push({ minX: b.x - width / 2, maxX: b.x + width / 2, minZ: b.z - depth / 2, maxZ: b.z + depth / 2 });
+    }
+
+    function makeSpriteAt(text, x, y, z) {
+      const s = makeTextSprite(text, "rgba(15,23,42,0.88)", "#fde68a");
+      s.position.set(x, y, z);
+      s.scale.set(5.2, 1.3, 1);
+      return s;
+    }
+
+    function buildInteriorScene(b) {
+      clearWorldGroup();
+      rebuild3DNpcs();
+      scene.background = new THREE.Color(0x1e293b);
+      scene.fog = new THREE.FogExp2(0x1e293b, 0.012);
+
+      const lvl = state.buildingLevels[b.id] || 1;
+      const roomCount = Math.min(4, 1 + Math.floor((lvl + 1) / 2));
+      const totalW = 14 * roomCount;
+      const totalD = 16;
+
+      const floor = new THREE.Mesh(
+        new THREE.BoxGeometry(totalW, 0.5, totalD),
+        new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.75 })
+      );
+      floor.position.set(0, -0.25, 0);
+      floor.receiveShadow = true;
+      worldGroup.add(floor);
+
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.8 });
+      const backW = new THREE.Mesh(new THREE.BoxGeometry(totalW, 6, 0.5), wallMat);
+      backW.position.set(0, 3, -totalD / 2);
+      const leftW = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6, totalD), wallMat);
+      leftW.position.set(-totalW / 2, 3, 0);
+      const rightW = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6, totalD), wallMat);
+      rightW.position.set(totalW / 2, 3, 0);
+      worldGroup.add(backW, leftW, rightW);
+
+      for (let r = 1; r < roomCount; r++) {
+        const divX = -totalW / 2 + r * 14;
+        const partFront = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6, 6.2), wallMat);
+        partFront.position.set(divX, 3, -5.0);
+        const partBack = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6, 5.2), wallMat);
+        partBack.position.set(divX, 3, 5.4);
+        const partTop = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.4, 2.8), wallMat);
+        partTop.position.set(divX, 4.8, 1.4);
+        worldGroup.add(partFront, partBack, partTop);
+
+        const dKey = `room_${b.id}_${r}`;
+        const pivot = new THREE.Group();
+        pivot.position.set(divX, 0, 0.0);
+        const leaf = new THREE.Mesh(
+          new THREE.BoxGeometry(0.18, 3.6, 2.6),
+          new THREE.MeshStandardMaterial({ color: 0x78350f })
         );
+        leaf.position.set(0, 1.8, 1.3);
+        pivot.add(leaf);
+        if (state.doorsOpen[dKey]) pivot.rotation.y = Math.PI / 2;
+        worldGroup.add(pivot);
+        doorMeshes[dKey] = { pivot, key: dKey };
+
+        interactables.push({
+          id: `toggle_${dKey}`,
+          label: state.doorsOpen[dKey] ? `${r}-xona eshigini yopish` : `${r}-xona eshigini ochish`,
+          actionType: "toggle_door",
+          style: "blue",
+          pos: new THREE.Vector3(divX - 1.6, 0, 1.3),
+          radius: 4.5,
+          data: { doorKey: dKey }
+        });
       }
+
+      interactables.push({
+        id: "exit_building",
+        label: "Tashqariga chiqish",
+        actionType: "exit_building",
+        style: "amber",
+        pos: new THREE.Vector3(0, 0, totalD / 2 - 2.2),
+        radius: 5.5,
+        data: {}
+      });
+
+      const bedPos = new THREE.Vector3(-totalW / 2 + 4.5, 0, -4.5);
+      const bed = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 3.6), new THREE.MeshStandardMaterial({ color: 0x2563eb }));
+      bed.position.copy(bedPos).add(new THREE.Vector3(0, 0.35, 0));
+      const pillow = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.25, 0.7), new THREE.MeshStandardMaterial({ color: 0xf8fafc }));
+      pillow.position.copy(bedPos).add(new THREE.Vector3(0, 0.8, -1.3));
+      worldGroup.add(bed, pillow, makeSpriteAt("Yotoq", bedPos.x, 2.4, bedPos.z));
+
+      interactables.push({
+        id: "act_rest",
+        label: "Dam olish (Quvvatni tiklash)",
+        actionType: "rest_bed",
+        style: "",
+        pos: new THREE.Vector3(bedPos.x + 2.2, 0, bedPos.z),
+        radius: 4.8,
+        data: {}
+      });
+
+      const deskPos = new THREE.Vector3(0, 0, -3.5);
+      const desk = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.1, 1.8), new THREE.MeshStandardMaterial({ color: 0x854d0e }));
+      desk.position.copy(deskPos).add(new THREE.Vector3(0, 0.55, 0));
+      worldGroup.add(desk, makeSpriteAt("Boshqaruv Stoli", deskPos.x, 2.5, deskPos.z));
+
+      interactables.push({
+        id: "act_council",
+        label: "Aholi va Ishlarni Taqsimlash",
+        actionType: "open_council",
+        style: "purple",
+        pos: new THREE.Vector3(deskPos.x, 0, deskPos.z + 2.1),
+        radius: 4.8,
+        data: {}
+      });
+
+      const millPos = new THREE.Vector3(Math.min(totalW / 2 - 4.5, 10), 0, -4.5);
+      const stoneMill = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.8, 2.2, 16), new THREE.MeshStandardMaterial({ color: 0x94a3b8 }));
+      stoneMill.position.copy(millPos).add(new THREE.Vector3(0, 1.1, 0));
+      worldGroup.add(stoneMill, makeSpriteAt("Tegirmon / Oziq-ovqat", millPos.x, 3.2, millPos.z));
+
+      interactables.push({
+        id: "act_mill_food",
+        label: "Oziq-ovqat Tayyorlash (+30 Ovqat)",
+        actionType: "mill_food",
+        style: "amber",
+        pos: new THREE.Vector3(millPos.x, 0, millPos.z + 2.3),
+        radius: 4.8,
+        data: {}
+      });
+
+      const chestPos = new THREE.Vector3(Math.min(totalW / 2 - 4.5, 10), 0, 3.5);
+      const chest = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.3, 1.5), new THREE.MeshStandardMaterial({ color: 0xb45309 }));
+      chest.position.copy(chestPos).add(new THREE.Vector3(0, 0.65, 0));
+      worldGroup.add(chest, makeSpriteAt("Ombor Sandig'i", chestPos.x, 2.5, chestPos.z));
+
+      interactables.push({
+        id: "act_storage_modal",
+        label: "Katta Omborni Ochish",
+        actionType: "open_storage",
+        style: "blue",
+        pos: new THREE.Vector3(chestPos.x, 0, chestPos.z + 2.0),
+        radius: 4.8,
+        data: {}
+      });
+
+      player.position.set(0, 0, totalD / 2 - 3.5);
+      showToast(`${getBuildingDisplayName(b)} ichiga kirdingiz (${roomCount} ta xona)`);
     }
 
-    function findNearestResource(x, z, maxDist = 95) {
-      let best = null;
-      let bestD = maxDist;
-      for (const r of resources) {
-        if (!r.available) continue;
-        const d = Math.hypot(x - r.x, z - r.z);
-        if (d < bestD) { bestD = d; best = r; }
+    // =========================================================================
+    // 6. ASOSIY OLAM, SHARQIY G'OR VA 4 RESURS OLAMI (BOSHIDA YASHIL O'RMON + MUHIT)
+    // =========================================================================
+    function buildMainWorld() {
+      clearWorldGroup();
+      state.insideBuilding = null;
+      scene.background = new THREE.Color(0x69a7d8);
+      scene.fog = new THREE.FogExp2(0x69a7d8, 0.0022);
+
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(520, 520),
+        new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.9 })
+      );
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      worldGroup.add(ground);
+
+      const fenceRadius = 56 + state.civTier * 14;
+      const fenceMat = new THREE.MeshStandardMaterial({
+        color: state.civTier >= 4 ? 0x64748b : 0x78350f,
+        roughness: 0.75
+      });
+      const fenceH = state.civTier >= 4 ? 4.5 : 2.1;
+      for (let i = -fenceRadius; i <= fenceRadius; i += 8) {
+        const pN = new THREE.Mesh(new THREE.BoxGeometry(6.5, fenceH, 0.4), fenceMat);
+        pN.position.set(i, fenceH / 2, -fenceRadius);
+        const pS = new THREE.Mesh(new THREE.BoxGeometry(6.5, fenceH, 0.4), fenceMat);
+        pS.position.set(i, fenceH / 2, fenceRadius);
+        const pW = new THREE.Mesh(new THREE.BoxGeometry(0.4, fenceH, 6.5), fenceMat);
+        pW.position.set(-fenceRadius, fenceH / 2, i);
+        worldGroup.add(pN, pS, pW);
+
+        if (Math.abs(i) > 12) {
+          const pE = new THREE.Mesh(new THREE.BoxGeometry(0.4, fenceH, 6.5), fenceMat);
+          pE.position.set(fenceRadius, fenceH / 2, i);
+          worldGroup.add(pE);
+        }
       }
-      return best;
+
+      const tierInfo = TIERS[state.civTier - 1];
+      const activeBuildings = ALL_20_BUILDINGS.slice(0, tierInfo.buildingsCount);
+      activeBuildings.forEach(b => buildRealisticExterior(b));
+
+      const caveX = 128, caveZ = 0;
+      const caveGroup = new THREE.Group();
+      caveGroup.position.set(caveX, 0, caveZ);
+
+      const rockMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.9 });
+      const leftCliff = new THREE.Mesh(new THREE.DodecahedronGeometry(8.5, 1), rockMat);
+      leftCliff.scale.set(1.1, 1.4, 1.1);
+      leftCliff.position.set(-5.5, 5.5, 0);
+
+      const rightCliff = new THREE.Mesh(new THREE.DodecahedronGeometry(8.5, 1), rockMat);
+      rightCliff.scale.set(1.1, 1.4, 1.1);
+      rightCliff.position.set(5.5, 5.5, 0);
+
+      const archTop = new THREE.Mesh(new THREE.DodecahedronGeometry(9.5, 1), rockMat);
+      archTop.scale.set(1.4, 0.75, 1.1);
+      archTop.position.set(0, 10.5, 0);
+
+      const caveLabel = makeTextSprite("Sharqiy G'or (4 Portal)", "rgba(30,27,75,0.9)", "#c4b5fd");
+      caveLabel.position.set(0, 14.5, 0);
+      caveGroup.add(leftCliff, rightCliff, archTop, caveLabel);
+      worldGroup.add(caveGroup);
+
+      interactables.push({
+        id: "enter_east_cave",
+        label: "G'orga kirish",
+        actionType: "enter_cave",
+        style: "purple",
+        pos: new THREE.Vector3(caveX - 4, 0, caveZ + 4.5),
+        radius: 6.5,
+        data: {}
+      });
+
+      rebuild3DNpcs();
     }
 
-    function gatherNearby() {
-      if (profileModal.style.display !== "none") return;
-      const activePos = state.inBase ? baseGroup.position : playerWrapper.position;
-      const reach = state.inBase ? 130 : 95;
-      const target = findNearestResource(activePos.x, activePos.z, reach);
-      if (!target) return;
+    function buildCaveInterior() {
+      clearWorldGroup();
+      state.insideBuilding = null;
+      rebuild3DNpcs();
+      scene.background = new THREE.Color(0x090d16);
+      scene.fog = new THREE.FogExp2(0x090d16, 0.015);
 
-      const bonus = state.inBase ? 2 : 1;
-      state.inv[target.key] += target.amount * bonus;
-      target.available = false;
-      target.respawnTimer = 14;
-      target.mesh.visible = false;
+      const floor = new THREE.Mesh(
+        new THREE.CircleGeometry(34, 32),
+        new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85 })
+      );
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      worldGroup.add(floor);
 
-      const dBase = Math.hypot(activePos.x - baseGroup.position.x, activePos.z - baseGroup.position.z);
-      if (state.inBase || dBase <= 145) depositToBase();
-      refreshHUD();
+      const portals = [
+        { id: "ormon",  title: "O'rmon", x: -15, z: -12, color: 0x22c55e },
+        { id: "dengiz", title: "Dengiz", x: -5,  z: -16, color: 0x0ea5e9 },
+        { id: "chol",   title: "Cho'l",  x: 5,   z: -16, color: 0xeab308 },
+        { id: "tog",    title: "Tog'",   x: 15,  z: -12, color: 0x94a3b8 }
+      ];
+
+      portals.forEach(p => {
+        const frame = new THREE.Mesh(
+          new THREE.TorusGeometry(2.6, 0.35, 12, 28),
+          new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.4, roughness: 0.4 })
+        );
+        frame.position.set(p.x, 3.0, p.z);
+
+        const disc = new THREE.Mesh(
+          new THREE.CircleGeometry(2.35, 24),
+          new THREE.MeshBasicMaterial({ color: p.color, side: THREE.DoubleSide })
+        );
+        disc.position.set(p.x, 3.0, p.z);
+
+        const tag = makeTextSprite(p.title, "rgba(15,23,42,0.92)", "#ffffff");
+        tag.position.set(p.x, 6.5, p.z);
+        tag.scale.set(5.4, 1.35, 1);
+        worldGroup.add(frame, disc, tag);
+
+        interactables.push({
+          id: `portal_${p.id}`,
+          label: `${p.title} portaliga kirish`,
+          actionType: "enter_subworld",
+          style: "blue",
+          pos: new THREE.Vector3(p.x, 0, p.z + 3.2),
+          radius: 5.2,
+          data: { worldId: p.id, title: p.title }
+        });
+      });
+
+      interactables.push({
+        id: "exit_cave_main",
+        label: "Shaharga qaytish",
+        actionType: "go_main",
+        style: "amber",
+        pos: new THREE.Vector3(0, 0, 14),
+        radius: 6.0,
+        data: {}
+      });
+
+      player.position.set(0, 0, 11);
+      showToast("G'or ichida 4 ta portal: O'rmon, Dengiz, Cho'l, Tog'");
     }
 
-    let camYaw = 0;
-    let camDist = 420;
-    let camHeight = 310;
-    const keys = {};
+    function addGreenTree(x, z, scale = 1.0) {
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.45 * scale, 0.7 * scale, 4.5 * scale, 8),
+        new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 })
+      );
+      trunk.position.set(x, 2.25 * scale, z);
+      trunk.castShadow = true;
 
-    window.addEventListener("keydown", (e) => {
-      const k = e.key.toLowerCase();
-      keys[k] = true;
-      if (k === "p") {
-        if (profileModal.style.display === "none") openProfileModal();
-        else closeProfileAndStart();
-        return;
+      const crown1 = new THREE.Mesh(
+        new THREE.ConeGeometry(2.8 * scale, 5.5 * scale, 8),
+        new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.8 })
+      );
+      crown1.position.set(x, 6.2 * scale, z);
+      crown1.castShadow = true;
+
+      const crown2 = new THREE.Mesh(
+        new THREE.ConeGeometry(2.1 * scale, 4.2 * scale, 8),
+        new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.8 })
+      );
+      crown2.position.set(x, 8.6 * scale, z);
+      worldGroup.add(trunk, crown1, crown2);
+    }
+
+    function buildResourceWorld(wId) {
+      clearWorldGroup();
+      state.insideBuilding = null;
+      rebuild3DNpcs();
+
+      const theme = {
+        ormon:  { sky: 0x2e6f40, mainGround: 0x166534, label: "O'rmon Olami (Yog'och & Hayvon go'shti)", sexName: "O'rmon Sexi",  pos: { x: 0, z: -36 } },
+        dengiz: { sky: 0x0ea5e9, mainGround: 0x0284c7, label: "Dengiz Olami (Suv & Baliq)",            sexName: "Dengiz Sexi", pos: { x: 0, z: -36 } },
+        chol:   { sky: 0xd97706, mainGround: 0xeab308, label: "Cho'l Olami (Tuya & Oltin)",              sexName: "Cho'l Sexi",  pos: { x: 0, z: -36 } },
+        tog:    { sky: 0x475569, mainGround: 0x64748b, label: "Tog' Olami (Tosh & Temir)",               sexName: "Tog' Sexi",   pos: { x: 0, z: -36 } }
+      }[wId];
+
+      scene.background = new THREE.Color(theme.sky);
+      scene.fog = new THREE.FogExp2(theme.sky, 0.0028);
+
+      // 1) Boshlanish zonasi: hamma 4 olam boshida ozgina yashil o'rmon chizig'i (z: -10 dan +36 gacha)
+      const entryForestGround = new THREE.Mesh(
+        new THREE.PlaneGeometry(460, 48),
+        new THREE.MeshStandardMaterial({ color: 0x3f7d20, roughness: 0.9 })
+      );
+      entryForestGround.rotation.x = -Math.PI / 2;
+      entryForestGround.position.set(0, 0.02, 13);
+      entryForestGround.receiveShadow = true;
+      worldGroup.add(entryForestGround);
+
+      // Boshlanish qismidagi yashil o'rmon daraxtlari (yo'lakning ikki chetida)
+      for (let i = 0; i < 16; i++) {
+        const side = i % 2 === 0 ? -1 : 1;
+        const tx = side * (9 + (i % 5) * 7.5);
+        const tz = -6 + Math.floor(i / 2) * 4.5;
+        addGreenTree(tx, tz, 0.9 + (i % 3) * 0.15);
       }
-      if (profileModal.style.display !== "none") return;
-      if (k === "f") toggleBaseMode();
-      if (e.code === "Space") {
-        e.preventDefault();
-        gatherNearby();
+
+      // 2) Qolgan asosiy olam qismi — o'z muhitiga mos (O'rmon, Dengiz, Cho'l, Tog')
+      const mainBiomeGround = new THREE.Mesh(
+        new THREE.PlaneGeometry(460, 420),
+        new THREE.MeshStandardMaterial({
+          color: theme.mainGround,
+          roughness: wId === "dengiz" ? 0.25 : 0.88,
+          metalness: wId === "dengiz" ? 0.2 : 0.0
+        })
+      );
+      mainBiomeGround.rotation.x = -Math.PI / 2;
+      mainBiomeGround.position.set(0, 0, -218);
+      mainBiomeGround.receiveShadow = true;
+      worldGroup.add(mainBiomeGround);
+
+      // O'rmon va muhit o'rtasidagi o'tish chizig'i (sohil / qum chegarasi / tosh etagi)
+      const borderMat = new THREE.MeshStandardMaterial({
+        color: wId === "dengiz" ? 0xfde047 : wId === "chol" ? 0xca8a04 : wId === "tog" ? 0x475569 : 0x15803d,
+        roughness: 0.9
+      });
+      const transitionStrip = new THREE.Mesh(new THREE.PlaneGeometry(460, 8), borderMat);
+      transitionStrip.rotation.x = -Math.PI / 2;
+      transitionStrip.position.set(0, 0.03, -10);
+      worldGroup.add(transitionStrip);
+
+      // Muhit obyektlari (z < -14 hududida)
+      for (let i = 0; i < 30; i++) {
+        const px = ((i * 37) % 150) - 75;
+        const pz = -18 - (i * 4.2);
+        if (Math.abs(px) < 12 && pz > -52 && pz < -22) continue; // Sex joyini bo'sh qoldiramiz
+
+        if (wId === "ormon") {
+          addGreenTree(px, pz, 1.15 + (i % 3) * 0.2);
+        } else if (wId === "tog") {
+          const rock = new THREE.Mesh(
+            new THREE.DodecahedronGeometry(3.8 + (i % 3) * 1.4, 0),
+            new THREE.MeshStandardMaterial({ color: i % 3 === 0 ? 0xe2e8f0 : 0x334155, roughness: 0.85 })
+          );
+          rock.position.set(px, 2.8, pz);
+          rock.castShadow = true;
+          worldGroup.add(rock);
+        } else if (wId === "chol") {
+          const dune = new THREE.Mesh(
+            new THREE.ConeGeometry(7.5, 3.0 + (i % 3) * 0.9, 6),
+            new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.92 })
+          );
+          dune.position.set(px, 1.4, pz);
+          worldGroup.add(dune);
+        } else if (wId === "dengiz") {
+          const island = new THREE.Mesh(
+            new THREE.CylinderGeometry(3.2, 4.5, 1.2, 10),
+            new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.85 })
+          );
+          island.position.set(px, 0.4, pz);
+          worldGroup.add(island);
+        }
       }
+
+      // Dengiz olamida sex ostida yog'och platforma (pristan)
+      if (wId === "dengiz") {
+        const pier = new THREE.Mesh(
+          new THREE.BoxGeometry(18, 0.8, 32),
+          new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 })
+        );
+        pier.position.set(0, 0.4, -24);
+        worldGroup.add(pier);
+      }
+
+      // Ishlab chiqarish sexi
+      const sexState = state.sexes[wId];
+      const sexGroup = new THREE.Group();
+      sexGroup.position.set(theme.pos.x, 0, theme.pos.z);
+
+      const sexBody = new THREE.Mesh(
+        new THREE.BoxGeometry(14, 7 + sexState.level * 1.2, 12),
+        new THREE.MeshStandardMaterial({ color: sexState.built ? 0x1e293b : 0x78716c, roughness: 0.7 })
+      );
+      sexBody.position.y = (7 + sexState.level * 1.2) / 2;
+      sexBody.castShadow = true;
+      sexGroup.add(sexBody);
+
+      const sexTag = makeTextSprite(
+        sexState.built ? `${theme.sexName} (Lv.${sexState.level})` : `${theme.sexName} (Qurilmagan)`,
+        "rgba(15,23,42,0.9)",
+        sexState.built ? "#86efac" : "#fde047"
+      );
+      sexTag.position.set(0, 11.5, 0);
+      sexGroup.add(sexTag);
+      worldGroup.add(sexGroup);
+
+      interactables.push({
+        id: `sex_action_${wId}`,
+        label: sexState.built ? `${theme.sexName} — Boshqaruv / Rivoj` : `${theme.sexName} qurish (30 Yog'och, 20 Tosh)`,
+        actionType: "manage_sex",
+        style: sexState.built ? "blue" : "",
+        pos: new THREE.Vector3(theme.pos.x, 0, theme.pos.z + 8.5),
+        radius: 6.5,
+        data: { worldId: wId }
+      });
+
+      interactables.push({
+        id: "back_to_main_from_res",
+        label: "Shaharga qaytish",
+        actionType: "go_main",
+        style: "amber",
+        pos: new THREE.Vector3(0, 0, 14),
+        radius: 6.5,
+        data: {}
+      });
+
+      player.position.set(0, 0, 10);
+      showToast(theme.label);
+    }
+
+    function switchWorld(target) {
+      state.currentWorld = target;
+      if (target === "main") {
+        player.position.set(112, 0, 0);
+        buildMainWorld();
+      } else if (target === "cave") {
+        buildCaveInterior();
+      } else {
+        buildResourceWorld(target);
+      }
+      updateHud();
+    }
+
+    // =========================================================================
+    // 7. IQTISODIYOT, AVTOMATIK SEX ISHLAB CHIQARISHI VA AHOLI
+    // =========================================================================
+    function recalculateEconomy() {
+      const zeroRates = { yogoch: 0, gosht: 0, tosh: 0, temir: 0, tuya: 0, oltin: 0, suv: 0, baliq: 0 };
+      state.ratesPerSec = { ...zeroRates };
+
+      Object.keys(state.sexes).forEach(wId => {
+        const s = state.sexes[wId];
+        if (!s.built) return;
+        const speed = (0.8 + s.level * 0.65) * (0.6 + (s.workers + state.workers.sex * 0.25) * 0.45);
+        state.ratesPerSec[s.resA] += Number((speed * 1.2).toFixed(2));
+        state.ratesPerSec[s.resB] += Number((speed * 0.9).toFixed(2));
+      });
+    }
+
+    setInterval(() => {
+      recalculateEconomy();
+      Object.keys(state.ratesPerSec).forEach(k => {
+        state.warehouse[k] += state.ratesPerSec[k];
+      });
+
+      const millProd = 1.5 + state.workers.mill * 1.4;
+      const foodNeed = state.population * 0.12;
+      state.food = Math.max(0, state.food + millProd - foodNeed);
+
+      const cap = TIERS[state.civTier - 1].popCap;
+      if (state.food > state.population * 1.2 && state.population < cap && Math.random() < 0.25) {
+        state.population += 1;
+        rebuild3DNpcs();
+      }
+
+      updateHud();
+    }, 1000);
+
+    // =========================================================================
+    // 8. KAMERA (360°), SENSORLI JOYSTIK VA KONTEKSTLI TUGMALAR
+    // =========================================================================
+    let camYaw = 0, camPitch = 0.52, camDist = 14;
+    let isDraggingCam = false, lastPointerX = 0, lastPointerY = 0;
+
+    renderer.domElement.addEventListener("pointerdown", (e) => {
+      isDraggingCam = true;
+      lastPointerX = e.clientX;
+      lastPointerY = e.clientY;
     });
-    window.addEventListener("keyup", (e) => {
-      keys[e.key.toLowerCase()] = false;
+
+    window.addEventListener("pointermove", (e) => {
+      if (!isDraggingCam) return;
+      const dx = e.clientX - lastPointerX;
+      const dy = e.clientY - lastPointerY;
+      lastPointerX = e.clientX;
+      lastPointerY = e.clientY;
+      camYaw -= dx * 0.007;
+      camPitch = Math.max(0.18, Math.min(1.25, camPitch + dy * 0.006));
     });
 
-    document.getElementById("btnGather").addEventListener("click", gatherNearby);
-    document.getElementById("btnBase").addEventListener("click", toggleBaseMode);
+    window.addEventListener("pointerup", () => { isDraggingCam = false; });
 
-    window.addEventListener("wheel", (e) => {
-      if (profileModal.style.display !== "none") return;
-      camDist = Math.max(160, Math.min(1050, camDist + e.deltaY * 0.35));
-      camHeight = camDist * 0.74;
-    }, { passive: true });
+    renderer.domElement.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      camDist = Math.max(5.5, Math.min(34, camDist + e.deltaY * 0.012));
+    }, { passive: false });
 
-    const joyZone = document.getElementById("joyZone");
-    const joyKnob = document.getElementById("joyKnob");
-    let joyActive = false;
-    let joyVec = { x: 0, y: 0 };
+    const joyZone = document.getElementById("joy-zone");
+    const joyKnob = document.getElementById("joy-knob");
+    let joyActive = false, joyVec = { x: 0, y: 0 };
 
     function updateJoystick(clientX, clientY) {
       const rect = joyZone.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
-      const maxR = 36;
-      let dx = clientX - cx;
-      let dy = clientY - cy;
-      const dist = Math.hypot(dx, dy);
-      if (dist > maxR) { dx = (dx / dist) * maxR; dy = (dy / dist) * maxR; }
+      const maxR = 42;
+      let dx = clientX - cx, dy = clientY - cy;
+      const len = Math.hypot(dx, dy);
+      if (len > maxR) { dx = (dx / len) * maxR; dy = (dy / len) * maxR; }
       joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
       joyVec.x = dx / maxR;
       joyVec.y = dy / maxR;
     }
 
-    joyZone.addEventListener("pointerdown", (e) => {
-      joyActive = true;
-      joyZone.setPointerCapture(e.pointerId);
-      updateJoystick(e.clientX, e.clientY);
-    });
-    joyZone.addEventListener("pointermove", (e) => {
-      if (joyActive) updateJoystick(e.clientX, e.clientY);
-    });
-    joyZone.addEventListener("pointerup", () => {
-      joyActive = false;
-      joyVec = { x: 0, y: 0 };
+    joyZone.addEventListener("pointerdown", (e) => { e.stopPropagation(); joyActive = true; updateJoystick(e.clientX, e.clientY); });
+    window.addEventListener("pointermove", (e) => { if (joyActive) updateJoystick(e.clientX, e.clientY); });
+    window.addEventListener("pointerup", () => {
+      if (!joyActive) return;
+      joyActive = false; joyVec = { x: 0, y: 0 };
       joyKnob.style.transform = "translate(0px, 0px)";
     });
 
-    const miniBg = document.createElement("canvas");
-    miniBg.width = 156;
-    miniBg.height = 156;
-    const mbctx = miniBg.getContext("2d");
-    (function bakeMinimap() {
-      const s = miniBg.width / WORLD_SIZE;
-      mbctx.fillStyle = "#0369a1"; mbctx.fillRect(0, 0, 78, 78);
-      mbctx.fillStyle = "#ca8a04"; mbctx.fillRect(78, 0, 78, 78);
-      mbctx.fillStyle = "#cbd5e1"; mbctx.fillRect(0, 78, 78, 78);
-      mbctx.fillStyle = "#15803d"; mbctx.fillRect(78, 78, 78, 78);
+    const actionZone = document.getElementById("action-zone");
+    let lastActionSignature = "";
 
-      mbctx.fillStyle = "#d97706";
-      mbctx.beginPath();
-      mbctx.arc(78, 78, TOWN_RADIUS * s, 0, Math.PI * 2);
-      mbctx.fill();
-      mbctx.strokeStyle = "#fef08a";
-      mbctx.lineWidth = 1.5;
-      mbctx.stroke();
-    })();
+    function refreshActionButtons() {
+      const nearby = interactables
+        .map(item => ({ item, dist: player.position.distanceTo(item.pos) }))
+        .filter(x => x.dist <= (x.item.radius || 5.0))
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, 3);
 
-    miniCanvas.addEventListener("click", (e) => {
-      const rect = miniCanvas.getBoundingClientRect();
-      const mx = (e.clientX - rect.left) / rect.width;
-      const mz = (e.clientY - rect.top) / rect.height;
-      const nx = Math.max(-HALF + 60, Math.min(HALF - 60, (mx - 0.5) * WORLD_SIZE));
-      const nz = Math.max(-HALF + 60, Math.min(HALF - 60, (mz - 0.5) * WORLD_SIZE));
-      if (state.inBase) { baseGroup.position.x = nx; baseGroup.position.z = nz; }
-      else { playerWrapper.position.x = nx; playerWrapper.position.z = nz; }
-    });
+      const sig = nearby.map(x => `${x.item.id}:${x.item.label}`).join("|");
+      if (sig === lastActionSignature) return;
+      lastActionSignature = sig;
 
-    let lastTime = performance.now();
+      actionZone.innerHTML = "";
+      nearby.forEach(({ item }) => {
+        const btn = document.createElement("button");
+        btn.className = `action-btn ${item.style || ""}`;
+        btn.textContent = item.label;
+        btn.addEventListener("click", () => executeAction(item));
+        actionZone.appendChild(btn);
+      });
+    }
+
+    function executeAction(item) {
+      if (item.actionType === "enter_building") {
+        state.insideBuilding = item.data.building;
+        buildInteriorScene(item.data.building);
+      } else if (item.actionType === "exit_building") {
+        const prev = state.insideBuilding;
+        state.insideBuilding = null;
+        buildMainWorld();
+        if (prev) player.position.set(prev.x, 0, prev.z + 7.5);
+        showToast("Tashqariga chiqdingiz");
+      } else if (item.actionType === "toggle_door") {
+        const k = item.data.doorKey;
+        state.doorsOpen[k] = !state.doorsOpen[k];
+        if (doorMeshes[k]) doorMeshes[k].pivot.rotation.y = state.doorsOpen[k] ? -Math.PI / 2 : 0;
+        lastActionSignature = "";
+        showToast(state.doorsOpen[k] ? "Eshik ochildi" : "Eshik yopildi");
+      } else if (item.actionType === "rest_bed") {
+        state.energy = 100;
+        showToast("Yotoqda dam oldingiz — quvvat 100% tiklandi!");
+        updateHud();
+      } else if (item.actionType === "mill_food") {
+        state.food += 30;
+        showToast("Tegirmonda +30 oziq-ovqat tayyorlandi!");
+        updateHud();
+      } else if (item.actionType === "open_storage") {
+        openWarehouseModal();
+      } else if (item.actionType === "open_council") {
+        openCouncilModal();
+      } else if (item.actionType === "enter_cave") {
+        switchWorld("cave");
+      } else if (item.actionType === "enter_subworld") {
+        switchWorld(item.data.worldId);
+      } else if (item.actionType === "go_main") {
+        switchWorld("main");
+      } else if (item.actionType === "manage_sex") {
+        openSexModal(item.data.worldId);
+      }
+    }
+
+    // =========================================================================
+    // 9. MODALLAR VA HUD
+    // =========================================================================
+    const modalBackdrop = document.getElementById("modal-backdrop");
+    const modalTitle = document.getElementById("modal-title");
+    const modalBody = document.getElementById("modal-body");
+    document.getElementById("modal-close").onclick = () => { modalBackdrop.style.display = "none"; };
+
+    function openModal(title, html) {
+      modalTitle.textContent = title;
+      modalBody.innerHTML = html;
+      modalBackdrop.style.display = "flex";
+    }
+
+    function openWarehouseModal() {
+      recalculateEconomy();
+      const rows = Object.keys(RESOURCE_META).map(k => {
+        const m = RESOURCE_META[k];
+        const amt = Math.floor(state.warehouse[k]);
+        const rate = state.ratesPerSec[k];
+        return `<div class="stat-box">
+          <div style="font-weight:700; color:#7dd3fc;">${m.label} <span style="color:#94a3b8; font-size:11px;">(${m.world})</span></div>
+          <div style="font-size:18px; font-weight:700; margin-top:4px;">${amt.toLocaleString()} ta</div>
+          <div style="color:#4ade80; font-size:12px;">+${rate}/sek avtomatik</div>
+        </div>`;
+      }).join("");
+
+      openModal(
+        "Katta Ombor — Cheksiz Sig'im",
+        `<div style="margin-bottom:10px; color:#cbd5e1; font-size:13px;">
+          Sig'im: <b>Cheksiz</b> | 3D Aholi: <b>${state.population}</b> | Oziq-ovqat: <b>${Math.floor(state.food)}</b> | Quvvat: <b>${state.energy}%</b>
+        </div>
+        <div class="grid-2">${rows}</div>`
+      );
+    }
+
+    function openUpgradeModal() {
+      const curr = TIERS[state.civTier - 1];
+      const next = TIERS[state.civTier] || null;
+
+      let nextHtml = `<div class="stat-box" style="margin-bottom:12px; color:#4ade80;">Siz eng yuqori 5-bosqich — <b>Qirollik</b> darajasidasiz!</div>`;
+      if (next) {
+        const costText = Object.entries(next.cost)
+          .map(([k, v]) => `${RESOURCE_META[k].label}: ${Math.floor(state.warehouse[k])}/${v}`)
+          .join(" • ");
+        const canAfford = Object.entries(next.cost).every(([k, v]) => state.warehouse[k] >= v);
+        nextHtml = `<div class="stat-box" style="margin-bottom:12px;">
+          <div style="font-weight:700; color:#fbbf24;">Keyingi bosqich: ${next.name} (${next.level}/5) — ${next.buildingsCount} ta bino</div>
+          <div style="font-size:12px; color:#cbd5e1; margin-top:4px;">Talab: ${costText}</div>
+          <div class="row-flex">
+            <button class="mini-btn" id="btn-do-civ-upgrade" ${canAfford ? "" : "disabled style='opacity:0.45'"}>
+              Bosqichni ko'tarish
+            </button>
+          </div>
+        </div>`;
+      }
+
+      const bList = ALL_20_BUILDINGS.slice(0, curr.buildingsCount).map(b => {
+        const lvl = state.buildingLevels[b.id];
+        return `<div class="stat-box row-flex">
+          <div>
+            <b>${getBuildingDisplayName(b)}</b>
+            <div style="font-size:11px; color:#94a3b8;">Bosqich: ${lvl}/5</div>
+          </div>
+          <button class="mini-btn b-up-btn" data-bid="${b.id}" ${lvl >= 5 ? "disabled" : ""}>
+            ${lvl >= 5 ? "Max" : "+1 Lv (25 Yog'och, 20 Tosh)"}
+          </button>
+        </div>`;
+      }).join("");
+
+      openModal(
+        `Rivojlanish: ${curr.name} (${curr.level}/5) — ${curr.buildingsCount}/20 Bino`,
+        `${nextHtml}<div class="grid-2">${bList}</div>`
+      );
+
+      const upBtn = document.getElementById("btn-do-civ-upgrade");
+      if (upBtn && next) {
+        upBtn.onclick = () => {
+          Object.entries(next.cost).forEach(([k, v]) => { state.warehouse[k] -= v; });
+          state.civTier += 1;
+          showToast(`Tabriklaymiz! Maqom: ${next.name} (${next.buildingsCount} ta bino)`);
+          if (state.currentWorld === "main") buildMainWorld();
+          updateHud();
+          openUpgradeModal();
+        };
+      }
+
+      document.querySelectorAll(".b-up-btn").forEach(btn => {
+        btn.onclick = () => {
+          const bid = btn.getAttribute("data-bid");
+          if (state.warehouse.yogoch >= 25 && state.warehouse.tosh >= 20 && state.buildingLevels[bid] < 5) {
+            state.warehouse.yogoch -= 25;
+            state.warehouse.tosh -= 20;
+            state.buildingLevels[bid] += 1;
+            showToast("Bino darajasi oshirildi!");
+            if (state.currentWorld === "main") buildMainWorld();
+            updateHud();
+            openUpgradeModal();
+          } else {
+            showToast("Yog'och (25) yoki Tosh (20) yetarli emas!");
+          }
+        };
+      });
+    }
+
+    function openCouncilModal() {
+      const totalAssigned = state.workers.mill + state.workers.sex + state.workers.builder;
+      const freePop = Math.max(0, state.population - totalAssigned);
+
+      function workerRow(key, title, desc) {
+        return `<div class="stat-box row-flex">
+          <div>
+            <b>${title}: ${state.workers[key]} ta</b>
+            <div style="font-size:12px; color:#94a3b8;">${desc}</div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="mini-btn gray w-dec" data-w="${key}">-</button>
+            <button class="mini-btn w-inc" data-w="${key}">+</button>
+          </div>
+        </div>`;
+      }
+
+      openModal(
+        "Aholi Yig'ini — 3D Aholi va Ish Taqsimoti",
+        `<div class="stat-box" style="margin-bottom:10px;">
+          Jami 3D aholi: <b>${state.population}</b> | Bo'sh aholi: <b>${freePop}</b> | Oziq-ovqat: <b>${Math.floor(state.food)}</b>
+        </div>
+        ${workerRow("mill", "Tegirmon ishchilari (Qop ko'targan)", "Tegirmon va ombor o'rtasida qop tashib oziq-ovqat yetkazadi")}
+        ${workerRow("sex", "Sex ishchilari (Sandiq ko'targan)", "Ombor va g'or yo'nalishida yuk tashib mahsulot tezligini oshiradi")}
+        ${workerRow("builder", "Quruvchi / Qo'riqchi", "Shahar va binolar ichida tartib hamda qurilishni qo'llaydi")}`
+      );
+
+      document.querySelectorAll(".w-inc").forEach(b => {
+        b.onclick = () => {
+          const k = b.getAttribute("data-w");
+          const used = state.workers.mill + state.workers.sex + state.workers.builder;
+          if (used < state.population) {
+            state.workers[k] += 1;
+            recalculateEconomy();
+            rebuild3DNpcs();
+            openCouncilModal();
+            updateHud();
+          } else {
+            showToast("Bo'sh aholi qolmadi!");
+          }
+        };
+      });
+
+      document.querySelectorAll(".w-dec").forEach(b => {
+        b.onclick = () => {
+          const k = b.getAttribute("data-w");
+          if (state.workers[k] > 0) {
+            state.workers[k] -= 1;
+            recalculateEconomy();
+            rebuild3DNpcs();
+            openCouncilModal();
+            updateHud();
+          }
+        };
+      });
+    }
+
+    function openSexModal(wId) {
+      const s = state.sexes[wId];
+      const resAName = RESOURCE_META[s.resA].label;
+      const resBName = RESOURCE_META[s.resB].label;
+      recalculateEconomy();
+
+      openModal(
+        `${wId.toUpperCase()} — Ishlab Chiqarish Sexi`,
+        `<div class="stat-box">
+          <div>Holat: <b>${s.built ? "Qurilgan (Lv." + s.level + ")" : "Qurilmagan"}</b></div>
+          <div style="margin-top:6px;">Mahsulotlar: <b>${resAName}</b> (+${state.ratesPerSec[s.resA]}/sek) va <b>${resBName}</b> (+${state.ratesPerSec[s.resB]}/sek)</div>
+          <div style="margin-top:6px; color:#94a3b8; font-size:12px;">Barcha mahsulotlar avtomatik ravishda Katta Omborga jo'natiladi.</div>
+          <div class="row-flex" style="margin-top:12px;">
+            ${!s.built
+              ? `<button class="mini-btn" id="btn-build-sex">Sex qurish (30 Yog'och, 20 Tosh)</button>`
+              : `<button class="mini-btn" id="btn-up-sex">Sexni rivojlantirish Lv.${s.level + 1} (40 Oltin, 30 Temir)</button>`
+            }
+          </div>
+        </div>`
+      );
+
+      const bSex = document.getElementById("btn-build-sex");
+      if (bSex) {
+        bSex.onclick = () => {
+          if (state.warehouse.yogoch >= 30 && state.warehouse.tosh >= 20) {
+            state.warehouse.yogoch -= 30;
+            state.warehouse.tosh -= 20;
+            s.built = true;
+            recalculateEconomy();
+            showToast("Sex qurildi! Mahsulotlar Katta Omborga kela boshladi.");
+            buildResourceWorld(wId);
+            openSexModal(wId);
+          } else {
+            showToast("Yog'och (30) yoki Tosh (20) yetarli emas!");
+          }
+        };
+      }
+
+      const uSex = document.getElementById("btn-up-sex");
+      if (uSex) {
+        uSex.onclick = () => {
+          if (state.warehouse.oltin >= 40 && state.warehouse.temir >= 30) {
+            state.warehouse.oltin -= 40;
+            state.warehouse.temir -= 30;
+            s.level += 1;
+            recalculateEconomy();
+            showToast(`Sex Lv.${s.level} darajaga ko'tarildi!`);
+            buildResourceWorld(wId);
+            openSexModal(wId);
+          } else {
+            showToast("Oltin (40) yoki Temir (30) yetarli emas!");
+          }
+        };
+      }
+    }
+
+    function openMapModal() {
+      openModal(
+        "60,000 × 60,000 Dunyo Xaritasi va Tezkor O'tish",
+        `<div class="stat-box" style="margin-bottom:10px; font-size:13px; color:#cbd5e1;">
+          Dunyo o'lchami: <b>60,000 × 60,000</b> birlik.<br/>
+          Sharqiy g'or ichida <b>4 ta portal</b> (O'rmon, Dengiz, Cho'l, Tog') mavjud. Har bir olam boshida ozgina yashil o'rmon bilan boshlanadi.
+        </div>
+        <div class="grid-2">
+          <button class="mini-btn" onclick="switchWorld('main'); document.getElementById('modal-backdrop').style.display='none';">Asosiy Olam (Shahar)</button>
+          <button class="mini-btn" onclick="switchWorld('cave'); document.getElementById('modal-backdrop').style.display='none';">Sharqiy G'or (4 Portal)</button>
+          <button class="mini-btn" onclick="switchWorld('ormon'); document.getElementById('modal-backdrop').style.display='none';">O'rmon (Yog'och, Go'sht)</button>
+          <button class="mini-btn" onclick="switchWorld('dengiz'); document.getElementById('modal-backdrop').style.display='none';">Dengiz (Suv, Baliq)</button>
+          <button class="mini-btn" onclick="switchWorld('chol'); document.getElementById('modal-backdrop').style.display='none';">Cho'l (Tuya, Oltin)</button>
+          <button class="mini-btn" onclick="switchWorld('tog'); document.getElementById('modal-backdrop').style.display='none';">Tog' (Tosh, Temir)</button>
+        </div>`
+      );
+    }
+
+    document.getElementById("btn-open-upgrade").onclick = openUpgradeModal;
+    document.getElementById("btn-open-warehouse").onclick = openWarehouseModal;
+    document.getElementById("btn-open-map").onclick = openMapModal;
+
+    function updateHud() {
+      const tier = TIERS[state.civTier - 1];
+      const worldNames = {
+        main: `Asosiy Olam — ${tier.name}`,
+        cave: "Sharqiy G'or (Portallar)",
+        ormon: "O'rmon Olami",
+        dengiz: "Dengiz Olami",
+        chol: "Cho'l Olami",
+        tog: "Tog' Olami"
+      };
+      document.getElementById("world-label").textContent = `${worldNames[state.currentWorld]} (${state.civTier}/5)`;
+      const gx = Math.round(player.position.x * 120);
+      const gz = Math.round(player.position.z * 120);
+      document.getElementById("world-sub").textContent =
+        `Binolar: ${tier.buildingsCount}/20 | 3D Aholi: ${state.population} | Ovqat: ${Math.floor(state.food)} | Koordinata: (${gx}, ${gz})`;
+    }
+
+    // =========================================================================
+    // 10. ASOSIY ANIMATSIYA TSIKLI
+    // =========================================================================
+    buildMainWorld();
+    recalculateEconomy();
+    updateHud();
+
+    let prevTime = performance.now();
     function animate(now) {
       requestAnimationFrame(animate);
-      const dt = Math.min(0.05, (now - lastTime) / 1000);
-      lastTime = now;
+      const dt = Math.min(0.05, (now - prevTime) / 1000);
+      prevTime = now;
 
-      // Agar profil oynasi ochiq bo'lsa, faqat 3D qahramonni aylantirib ko'rsatamiz
-      if (profileModal.style.display !== "none") {
-        previewChar.rotation.y += 0.9 * dt;
-        pRenderer.render(pScene, pCamera);
-        return;
-      }
-
-      if (keys["q"]) camYaw += 1.8 * dt;
-      if (keys["e"]) camYaw -= 1.8 * dt;
-
-      for (const r of resources) {
-        if (!r.available) {
-          r.respawnTimer -= dt;
-          if (r.respawnTimer <= 0) {
-            r.available = true;
-            r.mesh.visible = true;
-          }
-        } else {
-          r.mesh.rotation.y += 1.4 * dt;
-          r.mesh.position.y = r.baseY + Math.sin(now * 0.003 + r.x * 0.01) * 3;
+      worldGroup.traverse(obj => {
+        if (obj.userData && obj.userData.isMillBlade) {
+          obj.rotation.z += dt * 1.4;
         }
-      }
+      });
 
-      let inputX = joyVec.x;
-      let inputZ = joyVec.y;
-      if (keys["w"] || keys["arrowup"]) inputZ -= 1;
-      if (keys["s"] || keys["arrowdown"]) inputZ += 1;
-      if (keys["a"] || keys["arrowleft"]) inputX -= 1;
-      if (keys["d"] || keys["arrowright"]) inputX += 1;
+      update3DNpcs(dt);
 
-      const len = Math.hypot(inputX, inputZ);
-      if (len > 0) {
-        inputX /= len;
-        inputZ /= len;
+      const moveSpeed = 12.5;
+      const forward = new THREE.Vector3(-Math.sin(camYaw), 0, -Math.cos(camYaw));
+      const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
 
-        const sin = Math.sin(camYaw);
-        const cos = Math.cos(camYaw);
-        const moveX = inputX * cos + inputZ * sin;
-        const moveZ = -inputX * sin + inputZ * cos;
+      const moveDir = new THREE.Vector3();
+      moveDir.addScaledVector(forward, -joyVec.y);
+      moveDir.addScaledVector(right, joyVec.x);
 
-        if (state.inBase) {
-          const spd = state.baseSpeed + (state.baseLevel - 1) * 35;
-          baseGroup.position.x = Math.max(-HALF + 70, Math.min(HALF - 70, baseGroup.position.x + moveX * spd * dt));
-          baseGroup.position.z = Math.max(-HALF + 70, Math.min(HALF - 70, baseGroup.position.z + moveZ * spd * dt));
-          state.baseRotY = Math.atan2(moveX, moveZ);
-          baseGroup.rotation.y = state.baseRotY;
-        } else {
-          const sprint = keys["shift"] ? 1.65 : 1;
-          playerWrapper.position.x = Math.max(-HALF + 25, Math.min(HALF - 25, playerWrapper.position.x + moveX * state.playerSpeed * sprint * dt));
-          playerWrapper.position.z = Math.max(-HALF + 25, Math.min(HALF - 25, playerWrapper.position.z + moveZ * state.playerSpeed * sprint * dt));
-          state.playerRotY = Math.atan2(moveX, moveZ);
-          playerWrapper.rotation.y = state.playerRotY;
+      if (moveDir.lengthSq() > 0.001) {
+        moveDir.normalize();
+        const nextX = THREE.MathUtils.clamp(player.position.x + moveDir.x * moveSpeed * dt, -240, 240);
+        const nextZ = THREE.MathUtils.clamp(player.position.z + moveDir.z * moveSpeed * dt, -240, 240);
 
-          const dBase = Math.hypot(
-            playerWrapper.position.x - baseGroup.position.x,
-            playerWrapper.position.z - baseGroup.position.z
-          );
-          if (dBase <= 110 && getCarriedTotal() > 0) depositToBase();
+        const blocked = colliders.some(c =>
+          nextX > c.minX - 0.6 && nextX < c.maxX + 0.6 &&
+          nextZ > c.minZ - 0.6 && nextZ < c.maxZ + 0.6
+        );
+        if (!blocked) {
+          player.position.x = nextX;
+          player.position.z = nextZ;
         }
-      }
 
-      const pZone = getZone(playerWrapper.position.x, playerWrapper.position.z);
-      playerWrapper.position.y = pZone.id === "town" ? 4 : 0;
+        player.rotation.y = Math.atan2(moveDir.x, moveDir.z);
 
-      const bZone = getZone(baseGroup.position.x, baseGroup.position.z);
-      baseGroup.position.y = bZone.id === "town" ? 4 : 0;
-
-      seaMesh.position.y = -2 + Math.sin(now * 0.0025) * 1.8;
-
-      const focus = state.inBase ? baseGroup.position : playerWrapper.position;
-      const focusZone = state.inBase ? bZone : pZone;
-
-      const targetCamX = focus.x + Math.sin(camYaw) * camDist;
-      const targetCamZ = focus.z + Math.cos(camYaw) * camDist;
-      const targetCamY = focus.y + camHeight;
-
-      camera.position.lerp(new THREE.Vector3(targetCamX, targetCamY, targetCamZ), 0.12);
-      camera.lookAt(focus.x, focus.y + 34, focus.z);
-
-      dirLight.position.set(focus.x + 500, 1100, focus.z + 500);
-      dirLight.target.position.copy(focus);
-
-      const nearRes = findNearestResource(focus.x, focus.z, state.inBase ? 130 : 95);
-      const distToBase = Math.hypot(focus.x - baseGroup.position.x, focus.z - baseGroup.position.z);
-
-      if (nearRes) {
-        actionPrompt.style.display = "block";
-        actionPrompt.textContent = `${nearRes.icon} ${nearRes.name} yig‘ish — [SPACE] bosing`;
-      } else if (!state.inBase && distToBase <= 145) {
-        actionPrompt.style.display = "block";
-        actionPrompt.textContent = `🚛 Bazaga kirish / haydash — [F] bosing`;
-      } else if (state.inBase) {
-        actionPrompt.style.display = "block";
-        actionPrompt.textContent = `🚛 Baza boshqaruvida — Piyoda tushish uchun [F] bosing`;
+        player.userData.walkPhase += dt * 11;
+        const swing = Math.sin(player.userData.walkPhase) * 0.65;
+        player.userData.leftLegPivot.rotation.x = swing;
+        player.userData.rightLegPivot.rotation.x = -swing;
+        player.userData.leftArmPivot.rotation.x = -swing * 0.75;
+        player.userData.rightArmPivot.rotation.x = swing * 0.75;
       } else {
-        actionPrompt.style.display = "none";
+        player.userData.leftLegPivot.rotation.x *= 0.8;
+        player.userData.rightLegPivot.rotation.x *= 0.8;
+        player.userData.leftArmPivot.rotation.x *= 0.8;
+        player.userData.rightArmPivot.rotation.x *= 0.8;
       }
 
-      zoneBadge.textContent = `3D Zona: ${focusZone.name}`;
-      zoneBadge.style.borderColor = focusZone.color;
-      coordsBox.textContent = `X: ${Math.round(focus.x)} | Z: ${Math.round(focus.z)} | ${profile.username}`;
+      const horizDist = Math.cos(camPitch) * camDist;
+      const vertDist = Math.sin(camPitch) * camDist;
+      const targetLook = new THREE.Vector3(player.position.x, 1.6, player.position.z);
+      camera.position.set(
+        targetLook.x + Math.sin(camYaw) * horizDist,
+        targetLook.y + vertDist,
+        targetLook.z + Math.cos(camYaw) * horizDist
+      );
+      camera.lookAt(targetLook);
 
-      mctx.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
-      mctx.drawImage(miniBg, 0, 0);
+      dirLight.position.set(player.position.x + 35, 65, player.position.z + 25);
+      dirLight.target.position.copy(player.position);
 
-      const bx = ((baseGroup.position.x + HALF) / WORLD_SIZE) * miniCanvas.width;
-      const bz = ((baseGroup.position.z + HALF) / WORLD_SIZE) * miniCanvas.height;
-      mctx.fillStyle = "#facc15";
-      mctx.fillRect(bx - 4, bz - 4, 8, 8);
-      mctx.strokeStyle = "#0f172a";
-      mctx.lineWidth = 1.2;
-      mctx.strokeRect(bx - 4, bz - 4, 8, 8);
-
-      if (!state.inBase) {
-        const px = ((playerWrapper.position.x + HALF) / WORLD_SIZE) * miniCanvas.width;
-        const pz = ((playerWrapper.position.z + HALF) / WORLD_SIZE) * miniCanvas.height;
-        mctx.fillStyle = "#ef4444";
-        mctx.beginPath();
-        mctx.arc(px, pz, 4.5, 0, Math.PI * 2);
-        mctx.fill();
-        mctx.strokeStyle = "#ffffff";
-        mctx.lineWidth = 1.5;
-        mctx.stroke();
-      }
-
+      refreshActionButtons();
       renderer.render(scene, camera);
     }
 
-    animate(performance.now());
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    requestAnimationFrame(animate);
   </script>
 </body>
 </html>
